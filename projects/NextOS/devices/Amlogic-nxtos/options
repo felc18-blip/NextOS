@@ -81,6 +81,10 @@
     OPENGL="no"
     OPENGLES="mesa"
     PREFER_GLES="yes"
+    # Marcar suporte explicito a OpenGL ES — alguns packages (flycast-lr, etc)
+    # condicionam USE_GLES=ON na combinacao OPENGLES_SUPPORT=yes + PREFER_GLES=yes.
+    # Sem isso, flycast builda apenas com OpenGL desktop e crasha em Mali-450 Lima.
+    OPENGLES_SUPPORT="yes"
 
   # Graphic drivers — Lima (Mali Utgard userspace) + meson DRM (display ctrl)
     GRAPHIC_DRIVERS="lima meson"
@@ -132,7 +136,7 @@
     ADDITIONAL_DRIVERS=""
 
   # Sway compositor stack — packages/wayland/compositor/sway + deps mínimos
-    ADDITIONAL_PACKAGES="sway swaybg foot bemenu seatd inputplumber"
+    ADDITIONAL_PACKAGES="sway swaybg foot bemenu seatd inputplumber libfb-shim"
 
   # Firmware — vazio no primeiro build (boot test puro). Ethernet on-board
   # do S905W TV box via dwmac-meson não precisa firmware.
