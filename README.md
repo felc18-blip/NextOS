@@ -85,7 +85,6 @@ Independente do hardware, todo dispositivo NextOS roda:
 ## Fora de escopo
 
 - **S905X4 (sc2 Bifrost Mali-G31)** — meson-drm 5.15 + libmali g24p0 + kbase r54p2 não fecha em Wayland nem KMSDRM (GPU faulta no primeiro draw, independente da config). Esse SoC continua na rom Elite Edition antiga, separada do NextOS.
-- **Mali-450 fora do S905W** — outros chips com Utgard antigo não cobertos.
 
 ---
 
