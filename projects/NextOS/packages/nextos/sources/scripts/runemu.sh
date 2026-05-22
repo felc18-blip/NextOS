@@ -259,7 +259,8 @@ case ${EMULATOR} in
       aarch64)
         if [[ "${CORE}" =~ pcsx_rearmed32 ]] || \
            [[ "${CORE}" =~ gpsp ]] || \
-           [[ "${CORE}" =~ desmume ]]
+           [[ "${CORE}" =~ desmume ]] || \
+           [[ "${CORE}" =~ morpheuscast ]]
         then
           ### Configure for 32bit Retroarch
           ${VERBOSE} && log $0 "Configuring for 32bit cores."
@@ -290,19 +291,18 @@ case ${EMULATOR} in
     ### Mali-450 (Amlogic-nxtos): libfb-shim.so converte
     # glFramebufferRenderbuffer(GL_DEPTH_STENCIL_ATTACHMENT) (GLES3+) em 2
     # calls separadas (DEPTH + STENCIL) que GLES2 Lima aceita. flycast/
-    # flycast2021 (64-bit cores) e morpheuscast_xtreme_32b (32-bit core)
+    # flycast2021 (64-bit cores) e morpheuscast_xtreme32 (32-bit core)
     # batem nesse enum no init do framebuffer e crasham GL: Invalid enum.
-    SHIM_PRELOAD=""
     case "${CORE}" in
       flycast|flycast2021)
-        SHIM_PRELOAD="LD_PRELOAD=/usr/lib/libfb-shim.so "
+        export LD_PRELOAD=/usr/lib/libfb-shim.so
       ;;
-      morpheuscast_xtreme_32b)
-        SHIM_PRELOAD="LD_PRELOAD=/usr/lib32/libfb-shim.so "
+      morpheuscast_xtreme32)
+        export LD_PRELOAD=/usr/lib32/libfb-shim.so
       ;;
     esac
 
-    RUNTHIS='${EMUPERF} ${SHIM_PRELOAD}/usr/bin/${RABIN} -L /tmp/cores/${CORE}_libretro.so --config ${RETROARCH_TEMP_CONFIG} --appendconfig ${RETROARCH_APPEND_CONFIG} "${ROMNAME}"'
+    RUNTHIS='${EMUPERF} /usr/bin/${RABIN} -L /tmp/cores/${CORE}_libretro.so --config ${RETROARCH_TEMP_CONFIG} --appendconfig ${RETROARCH_APPEND_CONFIG} "${ROMNAME}"'
 
     CONTROLLERCONFIG="${ARGUMENTS#*--controllers=*}"
 
