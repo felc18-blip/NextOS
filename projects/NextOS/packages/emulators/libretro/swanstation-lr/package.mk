@@ -27,4 +27,16 @@ pre_configure_target() {
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib/libretro
   cp ${PKG_BUILD}/.${TARGET_NAME}/swanstation_libretro.so ${INSTALL}/usr/lib/libretro/
+
+  # Default GPU renderer = Software. Mesa Lima (Mali-450) reporta GLES 3.1
+  # mas swanstation hardware renderer pede GLES 3.2+ ou OpenGL desktop —
+  # core falha EGL config e RA cai pra KMSDRM que conflita com sway. Em
+  # Software o core renderiza CPU-only e fluxo Wayland inteiro funciona.
+  # Usuario pode trocar pra Hardware (OpenGL/Vulkan) via menu RA se hardware
+  # suportar (X5 Valhall talvez consiga GLES 3.2).
+  mkdir -p ${INSTALL}/usr/config/retroarch/config/SwanStation
+  cat > ${INSTALL}/usr/config/retroarch/config/SwanStation/SwanStation.opt <<'OPT'
+swanstation_GPU_Renderer = "Software"
+swanstation_GPU_UseSoftwareRendererForReadbacks = "false"
+OPT
 }
