@@ -135,7 +135,17 @@ makeinstall_target() {
   case ${ARCH} in
     aarch64)
       if [ -f ${ROOT}/build.${DISTRO}-${DEVICE}.arm/install_pkg/retroarch-*/usr/bin/retroarch ]; then
-        cp -vP ${ROOT}/build.${DISTRO}-${DEVICE}.arm/install_pkg/retroarch-*/usr/bin/retroarch ${INSTALL}/usr/bin/retroarch32
+        cp -vP ${ROOT}/build.${DISTRO}-${DEVICE}.arm/install_pkg/retroarch-*/usr/bin/retroarch ${INSTALL}/usr/bin/retroarch32.bin
+        # Wrapper: linker dinamico nao tem /etc/ld.so.cache (sem ldconfig no
+        # build), entao por default ld procura /usr/lib (64-bit) primeiro
+        # e bate ELFCLASS64 ao linkar libs. LD_LIBRARY_PATH=/usr/lib32 forca
+        # lookup no path correto antes de qualquer fallback.
+        cat > ${INSTALL}/usr/bin/retroarch32 <<'EOF'
+#!/bin/bash
+export LD_LIBRARY_PATH=/usr/lib32:/usr/lib32/mali:${LD_LIBRARY_PATH}
+exec /usr/bin/retroarch32.bin "$@"
+EOF
+        chmod 0755 ${INSTALL}/usr/bin/retroarch32
         mkdir -p ${INSTALL}/usr/share/retroarch/filters/32bit/
         cp -rvP ${ROOT}/build.${DISTRO}-${DEVICE}.arm/install_pkg/retroarch-*/usr/share/retroarch/filters/64bit/* ${INSTALL}/usr/share/retroarch/filters/32bit/
       fi

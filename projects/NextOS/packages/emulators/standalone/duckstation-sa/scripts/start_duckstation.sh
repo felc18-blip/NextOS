@@ -129,5 +129,5 @@ sed -i '/\[Cheevos\]/,/^\s*$/s/Enabled =.*/Enabled = false/' ${CONF_FILE}
 export PAN_MESA_DEBUG=forcepack
 export MESA_NO_ERROR=1
 
-#Run Duckstation
-${EMUPERF} duckstation-sa -fullscreen -bigpicture -nogui -- "${1}" > /dev/null 2>&1
+#Run Duckstation (NoGUI build, SDL2+EGL+Wayland)
+${EMUPERF} duckstation-nogui -fullscreen -bigpicture -nogui -- "${1}" > /dev/null 2>&1
