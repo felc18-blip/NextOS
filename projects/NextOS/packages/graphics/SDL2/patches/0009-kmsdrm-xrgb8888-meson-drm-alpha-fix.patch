@@ -1,0 +1,36 @@
+NextOS LE12/Arch-R patch for SDL2 KMSDRM driver.
+
+GBM_FORMAT_XRGB8888 instead of ARGB8888 for the GBM surface used by the
+primary plane on Amlogic Meson-DRM (S905x family).
+
+meson-drm primary plane honors alpha when the framebuffer format is AR24
+(ARGB8888). EGL/GLES apps that write alpha=0 (PPSSPP, RetroArch with
+default GL config, GTA SA Mobile port, etc.) end up with an invisible
+plane even though the GPU is producing correct pixels.
+
+Diagnosed by reading /dev/mem at the plane primary's dma_addr while the
+app was running: the buffer had real RGB content (e.g. 0x29 0x1b 0x0d 0x00)
+but the alpha byte was zero on every pixel — so the compositor multiplied
+everything to fully transparent.
+
+XR24 (XRGB8888) ignores the alpha channel entirely, keeping the plane
+opaque. The fix is identical to the SDL3 equivalent already in NextOS
+(packages/multimedia/SDL3/patches/AMLGX/0001-kmsdrm-xrgb8888.patch).
+
+Ported to SDL2 2.32.10 (Arch-R). Hunk targets KMSDRM_CreateSurfaces() in
+src/video/kmsdrm/SDL_kmsdrmvideo.c, around line 1214.
+
+--- a/src/video/kmsdrm/SDL_kmsdrmvideo.c
++++ b/src/video/kmsdrm/SDL_kmsdrmvideo.c
+@@ -1211,7 +1211,10 @@ KMSDRM_CreateSurfaces(_THIS, SDL_Window * window)
+     SDL_VideoDisplay *display = SDL_GetDisplayForWindow(window);
+     SDL_DisplayData *dispdata = (SDL_DisplayData *)display->driverdata;
+
+-    uint32_t surface_fmt = GBM_FORMAT_ARGB8888;
++    /* NextOS Arch-R patch: XRGB8888 instead of ARGB8888 — meson-drm primary
++     * plane honors alpha when format is AR24, so EGL apps writing alpha=0
++     * end up invisible. XR24 ignores alpha, plane stays opaque. */
++    uint32_t surface_fmt = GBM_FORMAT_XRGB8888;
+     uint32_t surface_flags = GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING;
+
+     EGLContext egl_context;

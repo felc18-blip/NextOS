@@ -1,0 +1,30 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2023 JELOS (https://github.com/JustEnoughLinuxOS)
+# Copyright (C) 2024 ArchR (https://github.com/archr-linux/Arch-R)
+# Copyright (C) 2026 NextOS-Elite-Edition (felipe)
+
+### Amlogic-no S905X5/X5M/S928X — Valhall + sway + Wayland
+# Amlogic-no atende somente Valhall (S905X5/X5M/S928X). X4 Bifrost ficou
+# fora porque kernel meson-drm 5.15.196 + libmali g24p0 + kbase 5.15 não
+# fecha o triângulo (GPU fault hardware no primeiro draw). X4 continua
+# rodando rom Elite Edition antiga.
+#
+# MALI_WAYLAND_AFBC=0: libmali aloca buffer LINEAR no plane primário do
+# meson-drm (que rejeita AFBC modifiers no atomic commit).
+cat <<PROFILE >/storage/.config/profile.d/090-ui_service
+UI_SERVICE="sway.service essway.service"
+MALI_WAYLAND_AFBC=0
+PROFILE
+
+### GPU stack — Valhall libMali blob (wayland-drm-dmaheap)
+# libEGL.so.1 / libGLESv2.so.2 / libGLESv1_CM.so.1 → libMali.so
+# libMali.so é symlink runtime pra /var/lib/libMali.so (overlay decide
+# entre g310 / g57 via libmali-overlay-setup.service no boot baseado
+# no DT compat s7d / s928 / s6).
+BLOB_TARGET="/usr/lib/libMali.so"
+if [ -e "${BLOB_TARGET}" ] || [ -L "${BLOB_TARGET}" ]; then
+  for sym in libEGL.so.1 libGLESv2.so.2 libGLESv1_CM.so.1; do
+    ln -sf "${BLOB_TARGET}" "/usr/lib/${sym}" 2>/dev/null
+  done
+fi

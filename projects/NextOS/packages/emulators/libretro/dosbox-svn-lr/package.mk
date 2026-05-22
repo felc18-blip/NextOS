@@ -1,0 +1,56 @@
+################################################################################
+#      This file is part of OpenELEC - http://www.openelec.tv
+#      Copyright (C) 2009-2012 Stephan Raue (stephan@openelec.tv)
+#      Copyright (C) 2023 JELOS (https://github.com/JustEnoughLinuxOS)
+#
+#  This Program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2, or (at your option)
+#  any later version.
+#
+#  This Program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with OpenELEC.tv; see the file COPYING.  If not, write to
+#  the Free Software Foundation, 51 Franklin Street, Suite 500, Boston, MA 02110, USA.
+#  http://www.gnu.org/copyleft/gpl.html
+################################################################################
+
+PKG_NAME="dosbox-svn-lr"
+PKG_VERSION="3804935049c778a56a2763ccafb7a2ff60f0c3e6"
+PKG_REV="1"
+PKG_ARCH="any"
+PKG_LICENSE="GPLv2"
+PKG_SITE="https://github.com/libretro/dosbox-svn"
+PKG_URL="${PKG_SITE}.git"
+PKG_GIT_CLONE_BRANCH="libretro"
+PKG_DEPENDS_TARGET="toolchain retroarch"
+PKG_PRIORITY="optional"
+PKG_SECTION="libretro"
+PKG_SHORTDESC="Upstream port of DOSBox to libretro"
+PKG_LONGDESC="Upstream port of DOSBox to libretro"
+GET_HANDLER_SUPPORT="git"
+PKG_IS_ADDON="no"
+PKG_AUTORECONF="no"
+PKG_BUILD_FLAGS="-lto"
+PKG_TOOLCHAIN="make"
+
+make_target() {
+  # GCC 16: legacy SVN source quebra com -Wmaybe-uninitialized + similar.
+  # Best-effort em aarch64 — não trava build geral.
+  export CFLAGS="${CFLAGS} -Wno-error=maybe-uninitialized -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=unused-function"
+  export CXXFLAGS="${CXXFLAGS} -Wno-error=maybe-uninitialized -Wno-error=unused-function -Wno-error=narrowing"
+  make -C libretro target=arm64 WITH_EMBEDDED_SDL=0 || true
+}
+
+makeinstall_target() {
+  mkdir -p ${INSTALL}/usr/lib/libretro
+  if [ -f ${PKG_BUILD}/libretro/dosbox_svn_libretro.so ]; then
+    cp ${PKG_BUILD}/libretro/dosbox_svn_libretro.so ${INSTALL}/usr/lib/libretro
+  else
+    echo "dosbox_svn_libretro.so not built — skipped"
+  fi
+}

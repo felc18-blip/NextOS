@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# NextOS 2026-05-12: usb_modeswitch nao instalado no Amlogic-no; rule vazia
+# pra evitar arquivo broken-symlink que polui o log udev.

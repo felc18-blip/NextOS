@@ -1,0 +1,70 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2026 NextOS-Elite-Edition (felipe)
+
+### Audio fix permanente pra Amlogic-nxtos (S905W, card "P230Q200").
+#
+# Dois bugs encadeados no stack ArchR:
+#
+#   1. UCM matched = /usr/share/alsa/ucm2/conf.d/gx-sound-card/GXL-P241.conf
+#      tem SectionDefaults que zera o roteamento ('AIU HDMI CTRL SRC' DISABLED
+#      etc). O HiFi que reativa fica em /usr/share/alsa/ucm2/Amlogic/p241/ —
+#      é pra S805X p241 ref board, NÃO casa com S905W p230 → BootSequence
+#      do HiFi nunca roda → card boota mute.
+#
+#   2. /etc/pipewire/pipewire.conf.d/50-amlogic-hdmi.conf padrão (se existir)
+#      apontava 'api.alsa.path = "hw:0,1"'. No ASoC Amlogic GXL, hw:0,1 é
+#      DAI link backend-only (HDMI codec), não pode ser aberto direto via
+#      ALSA — retorna EINVAL. Frontend é hw:0,0 (AIU), o roteamento
+#      HDMI/SPDIF/ACODEC é via os mixers acima.
+#
+# Fix:
+#   - Drop/atualiza 50-amlogic-hdmi.conf com hw:0,0 (idempotente).
+#   - Força mixer route HDMI=I2S + SPDIF=I2S (sem alsa-state.service no
+#     ArchR, mixer state não persiste — temos que setar a cada boot).
+#
+# Roda cedo via /usr/bin/autostart antes de pipewire-pulse acordar
+# (pipewire é socket-activated, só sobe quando alguém conecta).
+
+PWCONF=/etc/pipewire/pipewire.conf.d/50-amlogic-hdmi.conf
+PWCONF_NEW=$(mktemp)
+
+mkdir -p "$(dirname "${PWCONF}")"
+
+cat <<'EOF' >"${PWCONF_NEW}"
+# Amlogic-nxtos (S905W) — força sink HDMI explícito apontando pro AIU
+# frontend (hw:0,0). hw:0,1 é DAI link backend HDMI, não abre direto.
+# Roteamento HDMI vs ACODEC vs SPDIF é via mixer 'AIU * CTRL SRC' (ver
+# /usr/lib/autostart/quirks/platforms/Amlogic-nxtos/085-audio).
+context.objects = [
+  {
+    factory = adapter
+    args = {
+      factory.name = api.alsa.pcm.sink
+      node.name = "alsa_output.hdmi-stereo"
+      node.description = "HDMI Audio (S905W)"
+      media.class = "Audio/Sink"
+      api.alsa.path = "hw:0,0"
+      audio.format = "S16LE"
+      audio.rate = 48000
+      audio.channels = 2
+      audio.position = "FL,FR"
+      priority.driver = 2000
+      priority.session = 2000
+    }
+  }
+]
+EOF
+
+if ! cmp -s "${PWCONF_NEW}" "${PWCONF}" 2>/dev/null; then
+  mv "${PWCONF_NEW}" "${PWCONF}"
+  # Pipewire é socket-activated; se já subiu reload pra pegar a conf nova.
+  systemctl is-active pipewire.service >/dev/null 2>&1 && \
+    systemctl reload-or-restart pipewire pipewire-pulse wireplumber 2>/dev/null || true
+else
+  rm -f "${PWCONF_NEW}"
+fi
+
+### Mixer route — sem isso, AIU HDMI CTRL SRC default = DISABLED e mute.
+amixer -c 0 cset name='AIU HDMI CTRL SRC' I2S >/dev/null 2>&1 || true
+amixer -c 0 cset name='AIU SPDIF SRC SEL' I2S >/dev/null 2>&1 || true

@@ -1,0 +1,51 @@
+[Unit]
+Description=EmulationStation emulator frontend
+ConditionPathExists=/var/lock/start.games
+# NextOS Elite: Conflicts= alterna automaticamente entre frontends. Quando
+# es-de.service starta, emustation.service para; vice-versa via override no
+# package es-de. Permite RETRO ELITE APLICATIVOS no menu trocar sem race.
+Conflicts=es-de.service
+# V15: After weston.service quando Wayland opt-in está ativo.
+# weston.service tem ConditionPathExists=/storage/.config/weston-enabled,
+# então sem flag o After= é no-op (weston pula start no boot).
+After=weston.service
+
+[Service]
+Environment=HOME=/storage
+EnvironmentFile=/storage/.config/emulationstation/scripts/es_env.sh
+# V15.2 Tier 1: boot trace step pra detect hang remoto (cat /storage/.boot_last_hang)
+ExecStartPre=/usr/bin/boot-trace.sh step emustation
+ExecStartPre=emustation-config
+ExecStartPre=/usr/bin/killes.sh
+# V15 Amlogic-no (Wayland opt-in second backend):
+#  - SDL_VIDEODRIVER detect 3-way per-subdevice:
+#    1. Valhall (s7d/s6/s5) + /storage/.config/weston-enabled flag
+#       → SDL_VIDEODRIVER=wayland WAYLAND_DISPLAY=wayland-0
+#       (weston.service ConditionPathExists já garantiu compositor up via
+#        Before= ordering)
+#    2. Valhall (s7d/s6/s5) sem flag → SDL_VIDEODRIVER=kmsdrm (default V14.4)
+#    3. Bifrost (sc2/s4 X4) + outros → auto-select (MALI fbdev path natural,
+#       kernel meson-drm 5.15.196 sem atomic display path completo no plane
+#       HDMI inviabiliza KMSDRM/Wayland em Bifrost)
+#  - ES_ARGS guard: arquivo nao eh criado por nenhum package, antes o cat
+#    falhava 450x e poluia o journal. Fallback para argumento vazio.
+#  - EE_KMSDRM_RELEASE_DRM=1 (V15.5 — só Valhall): força FileData::launchGame
+#    ES patch fazer window->deinit/init em volta do system() pra liberar
+#    DRM master pro emulator/PortMaster. Sem isso RA dá tela preta + pugwash
+#    crasha com "Could not create EGL window surface" (ES segura card0
+#    como master). X4 Bifrost cai fora do if, var não setada → no-op.
+#  - SDL_KMSDRM_VSYNC_DEFAULT=1 (V15.14 — só Valhall): copiado do nxtos.
+#    Força SDL3 KMSDRM ativar vsync por default, evita screen tearing em
+#    Mali Valhall blob r44p0 wayland-drm-dmaheap path.
+ExecStart=/bin/bash -c '/usr/bin/boot-trace.sh done; if grep -qE "s7d|s6|s5" /proc/device-tree/compatible 2>/dev/null; then export EE_KMSDRM_RELEASE_DRM=1 SDL_KMSDRM_VSYNC_DEFAULT=1; if [ -f /storage/.config/weston-enabled ]; then export SDL_VIDEODRIVER=wayland WAYLAND_DISPLAY=wayland-0; else export SDL_VIDEODRIVER=kmsdrm; fi; fi; emulationstation $([ -f /emuelec/configs/ES_ARGS ] && cat /emuelec/configs/ES_ARGS || true)'
+KillMode=process
+TimeoutStopSec=3
+Restart=always
+# V13 Amlogic-no: throttle restart (era RestartSec=2 + StartLimitInterval=0
+# disabled, gerava counter 450 em 5min com left-over processes acumulando)
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=10
+
+[Install]
+WantedBy=emuelec.target

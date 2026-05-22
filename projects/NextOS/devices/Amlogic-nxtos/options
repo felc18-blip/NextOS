@@ -1,0 +1,158 @@
+################################################################################
+# Amlogic-nxtos: S905W Mali-450 1GB / kernel mainline 7.0.8 LE13 / Lima KMSDRM
+# Stack 100% open-source: Lima driver (Mali Utgard) + Wayland + sway (wlroots).
+# Sem blob libMali. Bootloader u-boot mainline 2025.07 + amlogic-boot-fip.
+# Port adaptado pro build system NextOS a partir do NextOS-Elite-Edition.
+################################################################################
+
+# setup device defaults
+################################################################################
+
+  # Device name for image filenames (overrides DEVICE in image name only)
+    DEVICE_NAME="Amlogic-nxtos"
+
+  # The TARGET_CPU variable controls which processor should be targeted for
+  # generated code.
+    case ${TARGET_ARCH} in
+      aarch64)
+        TARGET_KERNEL_ARCH="arm64"
+        TARGET_KERNEL_PATCH_ARCH="aarch64"
+        TARGET_CPU="cortex-a53"
+        TARGET_ARCH_FLAGS="+crc+fp+simd"
+        TARGET_FEATURES="64bit"
+        ;;
+      arm)
+        TARGET_KERNEL_ARCH="arm64"
+        TARGET_KERNEL_PATCH_ARCH="aarch64"
+        TARGET_FLOAT="hard"
+        TARGET_CPU="cortex-a53"
+        TARGET_ARCH_FLAGS="+crc"
+        TARGET_FPU="neon-fp-armv8"
+        TARGET_FEATURES="32bit"
+        ;;
+    esac
+
+    PARTITION_TABLE="msdos"
+    HW_CPU="Amlogic S905W"
+
+  # Bootloader to use (syslinux / u-boot)
+    BOOTLOADER="u-boot"
+
+  # u-boot version — mainline 2025.07 (sem "vendor")
+    UBOOT_VERSION=""
+
+  # U-Boot firmware packages — Amlogic FIP + autoscript helpers
+    UBOOT_FIRMWARE="amlogic-boot-fip u-boot-script"
+
+  # UBOOT_SYSTEM = board name in uboot_helper dict (NextOS.Amlogic-nxtos.box).
+  # 'box' = p212 reference defconfig (cobre GXL S905/S905X/S905W TV box).
+  # Também é usado como suffix no nome da imagem (-box.img.gz) e como key
+  # no bootloader/release pra escolher amlogic-boot-fip variant.
+    UBOOT_SYSTEM="box"
+
+  # NÃO usar Android bootimg — u-boot mainline carrega kernel direto
+    BUILD_ANDROID_BOOTIMG="no"
+
+  # Kernel package selection — ativa case 'amlogic' no global packages/linux,
+  # MAS o override per-device em packages/linux/package.mk pina 7.0.8 kernel.org
+    LINUX="amlogic"
+
+  # Kernel target — uImage.lzo (mainline LE13 path)
+    KERNEL_TARGET="uImage.lzo"
+
+  # uImage load/entry — match LE12/LE13 mainline Amlogic
+    KERNEL_UIMAGE_LOADADDR="0x1080000"
+    KERNEL_UIMAGE_ENTRYADDR="0x1080000"
+
+  # Extra make cmd — gerar DTBs in-tree do mainline kernel
+    KERNEL_MAKE_EXTRACMD="dtbs"
+
+  # Kernel image name — s905_autoscript faz `fatload ${loadaddr} KERNEL`
+  # (literal, maiúsculo, sem extensão). NÃO REGREDIR pra kernel.img.
+    KERNEL_NAME="KERNEL"
+
+  # Kernel cmdline — 1080p hardcoded (mesondrmfb base em 1080p libera mode
+  # change runtime via menu pra qualquer res ≤ 1080p sem tela preta).
+  # 'ssh' token = satisfies sshd.service ConditionKernelCommandLine|ssh
+  # (TV box é headless por design — SSH precisa estar sempre on).
+    EXTRA_CMDLINE="quiet loglevel=0 console=ttyAML0,115200n8 console=tty0 vt.global_cursor_default=0 consoleblank=0 net.ifnames=0 systemd.show_status=false mitigations=off audit=0 nowatchdog threadirqs zswap.enabled=0 video=HDMI-A-1:1280x720@60 ssh"
+
+  # OpenGL implementations — só GLES (Mali-450 não suporta desktop GL)
+    OPENGL="no"
+    OPENGLES="mesa"
+    PREFER_GLES="yes"
+
+  # Graphic drivers — Lima (Mali Utgard userspace) + meson DRM (display ctrl)
+    GRAPHIC_DRIVERS="lima meson"
+
+  # Mali family — sem blob, Lima é open-source mesa, deixar vazio
+    MALI_FAMILY=""
+
+  # Displayserver — Wayland
+    DISPLAYSERVER="wl"
+
+  # Windowmanager — sway 1.11 wlroots (NextOS packages/wayland/compositor/sway)
+    WINDOWMANAGER="sway"
+
+  # Debug TTY — Amlogic UART
+    DEBUG_TTY="/dev/ttyAML0"
+
+  # ZRAM
+    ZRAM_COMPRESSION_ALGO="lzo-rle"
+    ZRAM_SWAP_SIZE="512"
+
+  # Disk Swap — 2026-05-17: tier 2 backup quando ZRAM enche (priority -10
+  # automaticamente em nextos-memory-manager pra Low RAM tier).
+    SWAP_FILE_SIZE="512"
+
+  # KSM — 2026-05-17: dedup páginas idênticas (emuladores carregam mesma
+  # lib N vezes). Habilitado junto com CONFIG_KSM=y no kernel defconfig.
+    KSM_ENABLE="auto"
+
+################################################################################
+# setup build defaults
+################################################################################
+
+  # Project CFLAGS
+    PROJECT_CFLAGS=""
+
+  # Root filesystem type
+    ROOTFS_TYPE="ext4"
+
+  # SquashFS compression (only used if ROOTFS_TYPE=squashfs)
+    SQUASHFS_COMPRESSION="lzo"
+
+################################################################################
+# setup project defaults
+################################################################################
+
+  # Additional kernel drivers — vazio pro primeiro boot (kernel mainline 7.0.8
+  # já tem dwmac-meson, dwc2 USB, meson-mmc, etc in-tree). Wi-Fi/BT addons
+  # entram depois.
+    ADDITIONAL_DRIVERS=""
+
+  # Sway compositor stack — packages/wayland/compositor/sway + deps mínimos
+    ADDITIONAL_PACKAGES="sway swaybg foot bemenu seatd inputplumber"
+
+  # Firmware — vazio no primeiro build (boot test puro). Ethernet on-board
+  # do S905W TV box via dwmac-meson não precisa firmware.
+    FIRMWARE="kernel-firmware misc-firmware wlan-firmware"
+
+  # Subdevices — só TV box S905W (variant 'box' do pipeline LE13 mainline)
+    SUBDEVICES="box"
+
+  # Addon project tag
+    ADDON_PROJECT="ARMv8"
+
+# Kernel 7.0.8 perf precisa rustc com target aarch64-unknown-linux-gnu
+# que não está no toolchain NextOS. Desabilitar perf build.
+PKG_BUILD_PERF="no"
+
+# nextos-joypad kernel module usa linux/input-polldev.h removido em 5.x+
+# Kernel 7.0.8 mainline não tem esse header. TV box S905W usa USB controllers
+# direto via inputplumber, não precisa do joypad ADC driver Rockchip.
+ARCHR_JOYPAD="no"
+
+# 2026-05-17: sistema apertado em 4.5GB (95% uso pós-install dos libretro cores
+# + emuladores). Subir pra 5GB pra dar folga em updates e novos packages.
+ROOT_SIZE=5120

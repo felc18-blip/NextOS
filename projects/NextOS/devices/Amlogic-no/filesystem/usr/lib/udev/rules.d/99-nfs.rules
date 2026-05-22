@@ -1,0 +1,13 @@
+# V14 Amlogic-no: regra original neutralizada — callout /usr/lib/nfsrahead
+# ausente no FS (nfs-utils não é instalado por default em -no). Sintoma:
+#   udev-worker[XXX]: 1:11: Failed to find and pin callout binary "/usr/lib/nfsrahead"
+#   udev-worker[XXX]: PROGRAM="/usr/lib/nfsrahead %k": Failed to execute
+#
+# A regra original define read_ahead_kb pros bdi (backing device info) de
+# mounts NFS. Sem ela, NFS user-mount (via Settings > Network shares) usa
+# o default kernel ~128KB que é OK pra LAN gigabit; perda só em LAN 10G.
+#
+# Pra reativar: empacotar nfs-utils (já existe em packages/network/nfs-utils)
+# que dropa /usr/lib/nfsrahead durante install.
+
+# SUBSYSTEM=="bdi", ACTION=="add", PROGRAM="/usr/lib/nfsrahead %k", ATTR{read_ahead_kb}="%c"

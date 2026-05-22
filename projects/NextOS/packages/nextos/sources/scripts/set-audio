@@ -1,0 +1,66 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# NextOS audio control shim — ES (ApiSystem.cpp) calls `set-audio {list,get,set,
+# list-profiles,get-profile,set-profile}` via popen. Backend: PipeWire (wpctl).
+
+case "$1" in
+  list)
+    # Names of all audio sinks (one per line)
+    wpctl status 2>/dev/null | awk '
+      /^Audio$/ {a=1; next}
+      /^[A-Z]/ {a=0}
+      a && /Sinks:/ {s=1; next}
+      a && s && /^ │/ {s=0}
+      a && s && /[0-9]+\./ {
+        sub(/.*[0-9]+\. */, "")
+        sub(/ *\[vol:.*$/, "")
+        print
+      }
+    '
+    ;;
+  get)
+    # Current default sink description
+    wpctl status 2>/dev/null | awk '
+      /^Audio$/ {a=1; next}
+      /^[A-Z]/ {a=0}
+      a && /Sinks:/ {s=1; next}
+      a && s && /^ │/ {s=0}
+      a && s && /\*/ {
+        sub(/.*\* +[0-9]+\. */, "")
+        sub(/ *\[vol:.*$/, "")
+        print
+        exit
+      }
+    '
+    ;;
+  set)
+    # Match name to sink ID and set as default
+    shift
+    NAME="$*"
+    ID=$(wpctl status 2>/dev/null | awk -v n="${NAME}" '
+      /^Audio$/ {a=1; next}
+      /^[A-Z]/ {a=0}
+      a && /Sinks:/ {s=1; next}
+      a && s && /^ │/ {s=0}
+      a && s {
+        line=$0
+        sub(/ *\[vol:.*$/, "", line)
+        if (match(line, / [0-9]+\. /)) {
+          id=substr(line, RSTART+1, RLENGTH-3)
+          sub(/.* [0-9]+\. */, "", line)
+          if (line == n) { print id; exit }
+        }
+      }
+    ')
+    [ -n "${ID}" ] && wpctl set-default "${ID}" >/dev/null 2>&1
+    ;;
+  list-profiles|get-profile|set-profile)
+    # PipeWire handles profile selection at the device level via pactl. Stub:
+    # report nothing so ES UI shows empty list — non-fatal.
+    :
+    ;;
+  *)
+    echo "Usage: set-audio {list|get|set <name>|list-profiles|get-profile|set-profile <name>}" >&2
+    exit 1
+    ;;
+esac

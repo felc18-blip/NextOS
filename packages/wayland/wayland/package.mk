@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2016-present Team LibreELEC (https://libreelec.tv)
+
+PKG_NAME="wayland"
+PKG_VERSION="c072ae6f5f5b01dc895edef677a0f546fb78cc3b"
+PKG_LICENSE="OSS"
+PKG_SITE="https://wayland.freedesktop.org/"
+PKG_URL="https://gitlab.freedesktop.org/wayland/wayland/-/archive/${PKG_VERSION}/wayland-${PKG_VERSION}.tar.gz"
+PKG_DEPENDS_HOST="libffi:host expat:host libxml2:host meson:host"
+PKG_DEPENDS_TARGET="toolchain wayland:host libffi expat libxml2"
+PKG_LONGDESC="a display server protocol"
+
+PKG_MESON_OPTS_HOST="-Dlibraries=false \
+                     -Dscanner=true \
+                     -Dtests=false \
+                     -Ddocumentation=false \
+                     -Ddtd_validation=false"
+
+PKG_MESON_OPTS_TARGET="-Dlibraries=true \
+                       -Dscanner=false \
+                       -Dtests=false \
+                       -Ddocumentation=false \
+                       -Ddtd_validation=false"
+
+pre_configure_target() {
+  # wayland does not build with NDEBUG (requires assert for tests)
+  export TARGET_CFLAGS=$(echo ${TARGET_CFLAGS} | sed -e "s|-DNDEBUG||g")
+}
+
+post_makeinstall_host() {
+  cp ${TOOLCHAIN}/lib/pkgconfig/wayland-scanner.pc ${SYSROOT_PREFIX}/usr/lib/pkgconfig/
+  mkdir -p ${SYSROOT_PREFIX}/usr/share/wayland
+    cp ${TOOLCHAIN}/share/wayland/wayland.xml ${SYSROOT_PREFIX}/usr/share/wayland/
+}

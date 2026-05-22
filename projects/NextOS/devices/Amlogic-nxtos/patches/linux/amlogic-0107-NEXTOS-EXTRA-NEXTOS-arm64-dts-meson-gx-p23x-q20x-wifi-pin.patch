@@ -1,0 +1,20 @@
+NextOS: meson-gx-p23x-q20x: corrige pino de reset do SDIO WiFi pra TV box S905W p281
+
+Vendor DTB (kernel 3.14 d905) que vinha com o aparelho usa GPIODV_27
+(pad 76) como WL_REG_ON, nao GPIOX_6 que esta no DTSI mainline. Sem
+isso o chip RTL8189FTV nem enumera no SDIO bus.
+
+Validado em S905W p281 dev board (192.168.31.138): apos a mudanca
+mmc2: new high speed SDIO card at address 0001 e wlan0 sobe.
+
+--- a/arch/arm64/boot/dts/amlogic/meson-gx-p23x-q20x.dtsi
++++ b/arch/arm64/boot/dts/amlogic/meson-gx-p23x-q20x.dtsi
+@@ -92,7 +92,7 @@
+ 
+ 	sdio_pwrseq: sdio-pwrseq {
+ 		compatible = "mmc-pwrseq-simple";
+-		reset-gpios = <&gpio GPIOX_6 GPIO_ACTIVE_LOW>;
++		reset-gpios = <&gpio GPIODV_27 GPIO_ACTIVE_LOW>;
+ 		clocks = <&wifi32k>;
+ 		clock-names = "ext_clock";
+ 	};

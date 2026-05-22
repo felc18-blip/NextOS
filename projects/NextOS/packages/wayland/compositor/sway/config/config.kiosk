@@ -1,0 +1,8 @@
+seat * hide_cursor 1000
+default_border none
+exec_always mako
+
+# 2026-05-17 Amlogic-nxtos: forçar 720p em telas 1080p+ — Mali-450 fillrate
+# limitado, gaming em 720p tem framerate muito mais estável. Se o display
+# não tiver 1280x720 no EDID, sway cai pro modo nativo automaticamente.
+output * mode 1280x720@60Hz

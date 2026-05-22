@@ -1,0 +1,14 @@
+[Unit]
+Description=Boot trace init (preserve .boot_last_hang from previous boot)
+DefaultDependencies=no
+After=storage.mount
+Before=sysinit.target
+RequiresMountsFor=/storage
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/boot-trace.sh init
+RemainAfterExit=no
+
+[Install]
+WantedBy=sysinit.target

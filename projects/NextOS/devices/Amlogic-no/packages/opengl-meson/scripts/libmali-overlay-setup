@@ -1,0 +1,107 @@
+#!/bin/sh
+
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2018-present Team CoreELEC (https://coreelec.org)
+# NextOS 2026-05-13: revisado pra evitar symlinks quebrados em /var/lib32 e
+# /var/lib pra TODOS os SoCs suportados. Matriz dos blobs verificada:
+#
+#   blob                       /usr/lib/   /usr/lib32/
+#   libMali.dvalin.so          22M r44p0   27M r12p0     <- S905X4 (sc2/s4), G12A (Radxa Zero/S905Y2)
+#   libMali.gondul.so          49M r44p0   27M r12p0     <- T7 (A311D2/Khadas VIM4)
+#   libMali.gondul.g12b.so     49M r44p0   27M r12p0     <- G12B (Odroid N2/S922X)
+#   libMali.valhall.g310.so    49M r44p0   AUSENTE       <- S905X5/X5M (s7d/s6) -- so 64-bit
+#   libMali.valhall.g57.so     49M r44p0   AUSENTE       <- S5/S928X -- so 64-bit
+#   libMali.valhall.so         AUSENTE     27M r12p0     <- fallback 32-bit pra valhall
+#   libMali.dvalin.g12a.so     AUSENTE     27M r12p0     <- G12A custom NextOS, so 32-bit
+#
+# Regras:
+#   - g12a fica AGRUPADO com sc2/s4 -- todos usam libMali.dvalin.so 64-bit (r44p0/fbdev)
+#     e libMali.dvalin.so 32-bit (r12p0). O .g12a.so 32-bit dedicado nao e usado
+#     no caminho default -- evita criar /var/lib/libMali.so quebrado pra Radxa Zero.
+#   - Pra valhall (s5/s6/s7d) o /var/lib32/libMali.so aponta pro fallback
+#     libMali.valhall.so 32-bit (r12p0 gondul-derivado), nao pra .g310/.g57 que
+#     nao existem em 32-bit. Sem isso, ports 32-bit no S905X5/X5M dlopen falha.
+
+# V15.15: defensive setup + debug logging. Investigar V15.14 Valhall bug
+# onde /var/lib/libGL.so.1 NÃO foi criado apesar do /var/lib/libMali.so
+# funcionar (testador russo S905X5M).
+LOGFILE="/storage/.boot-libmali.log"
+{
+    echo ""
+    echo "===== libmali-overlay-setup $(date '+%Y-%m-%d %H:%M:%S') ====="
+    echo "compatible: $(tr -d '\0' < /proc/device-tree/compatible 2>/dev/null)"
+} >> "$LOGFILE" 2>/dev/null
+
+# Defensive mkdir — /var/lib pode não existir em first boot (apenas /var/lib32
+# era criado em versões antigas). Sem isso, `ln -sf` falha silente.
+mkdir -p /var/lib /var/lib32 2>>"$LOGFILE"
+
+_log_ln() {
+    local target="$1" link="$2"
+    if ln -sf "$target" "$link" 2>>"$LOGFILE"; then
+        echo "  OK $link -> $target" >> "$LOGFILE"
+    else
+        echo "  FAIL ln -sf $target $link" >> "$LOGFILE"
+    fi
+}
+
+if grep -qE "g12a|sc2|s4" /proc/device-tree/compatible; then
+    echo "  Bifrost/G12A — libMali dvalin (mali fbdev path)" >> "$LOGFILE"
+    _log_ln /usr/lib/libMali.dvalin.so   /var/lib/libMali.so
+    _log_ln /usr/lib32/libMali.dvalin.so /var/lib32/libMali.so
+elif grep -q "t7" /proc/device-tree/compatible; then
+    echo "  T7 — libMali gondul" >> "$LOGFILE"
+    _log_ln /usr/lib/libMali.gondul.so   /var/lib/libMali.so
+    _log_ln /usr/lib32/libMali.gondul.so /var/lib32/libMali.so
+elif grep -q "g12b" /proc/device-tree/compatible; then
+    echo "  G12B — libMali gondul g12b" >> "$LOGFILE"
+    _log_ln /usr/lib/libMali.gondul.g12b.so   /var/lib/libMali.so
+    _log_ln /usr/lib32/libMali.gondul.g12b.so /var/lib32/libMali.so
+elif grep -q "s5" /proc/device-tree/compatible; then
+    echo "  Valhall S928X (s5) — libMali valhall g57" >> "$LOGFILE"
+    _log_ln /usr/lib/libMali.valhall.g57.so /var/lib/libMali.so
+    _log_ln /usr/lib32/libMali.valhall.so   /var/lib32/libMali.so
+elif grep -qE "s7d|s6" /proc/device-tree/compatible; then
+    echo "  Valhall S905X5/X5M (s7d/s6) — libMali valhall g310" >> "$LOGFILE"
+    _log_ln /usr/lib/libMali.valhall.g310.so /var/lib/libMali.so
+    _log_ln /usr/lib32/libMali.valhall.so    /var/lib32/libMali.so
+fi
+
+# NextOS V15.10 — per-SoC libGL.so switch (resolve V15.6 wrapper segfault X4 +
+# mantém wrapper opt-in pra Valhall que precisa pra PortMaster pugwash não
+# conflitar com EGL Mali nativo).
+#
+#   Valhall (s7d/s6/s5): /var/lib/libGL.so.1 → /usr/lib/wrapper/libGL.so.1
+#                        /var/lib32/libGL.so.1 → /usr/lib32/wrapper/libGL.so.1
+#   Bifrost (sc2/s4/g12a): remove symlinks /var/lib/libGL.so.1 — apps caem
+#                          em /usr/lib/libGL.so.1 (gl4es real, como V15.5)
+#
+# ld.so encontra /var/lib primeiro via /etc/ld.so.conf.d/00-amlogic-no-overlay.conf.
+if grep -qE "s7d|s6|s5" /proc/device-tree/compatible; then
+    echo "  Valhall — libGL wrapper switch ATIVO" >> "$LOGFILE"
+    if [ -f /usr/lib/wrapper/libGL.so.1 ]; then
+        _log_ln /usr/lib/wrapper/libGL.so.1 /var/lib/libGL.so.1
+        _log_ln /usr/lib/wrapper/libGL.so.1 /var/lib/libGL.so
+    else
+        echo "  FAIL wrapper 64-bit ausente: /usr/lib/wrapper/libGL.so.1" >> "$LOGFILE"
+    fi
+    if [ -f /usr/lib32/wrapper/libGL.so.1 ]; then
+        _log_ln /usr/lib32/wrapper/libGL.so.1 /var/lib32/libGL.so.1
+        _log_ln /usr/lib32/wrapper/libGL.so.1 /var/lib32/libGL.so
+    else
+        echo "  FAIL wrapper 32-bit ausente: /usr/lib32/wrapper/libGL.so.1" >> "$LOGFILE"
+    fi
+else
+    echo "  Bifrost — libGL wrapper switch DESATIVO (apps caem em /usr/lib gl4es)" >> "$LOGFILE"
+    rm -f /var/lib/libGL.so /var/lib/libGL.so.1     2>>"$LOGFILE"
+    rm -f /var/lib32/libGL.so /var/lib32/libGL.so.1 2>>"$LOGFILE"
+fi
+
+# Refresh ld.so cache pra pegar mudanças /var/lib/
+ldconfig 2>>"$LOGFILE" && echo "  ldconfig OK" >> "$LOGFILE" || echo "  ldconfig FAIL" >> "$LOGFILE"
+
+# Final state — testador russo abre /storage/.boot-libmali.log pós-boot
+{
+    echo "  Final /var/lib   : $(ls -la /var/lib/libGL.so* /var/lib/libMali.so 2>&1 | grep -v 'No such')"
+    echo "  Final /var/lib32 : $(ls -la /var/lib32/libGL.so* /var/lib32/libMali.so 2>&1 | grep -v 'No such')"
+} >> "$LOGFILE" 2>/dev/null

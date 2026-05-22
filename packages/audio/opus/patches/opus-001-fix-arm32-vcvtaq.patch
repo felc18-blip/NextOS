@@ -1,0 +1,26 @@
+From: NextOS <noreply@archr>
+Date: Mon, 18 May 2026 00:55:00 -0300
+Subject: [PATCH] mathops_arm: vcvtaq_s32_f32 is AArch64-only
+
+ARM 32-bit armv8-a NEON does NOT have vcvtaq_s32_f32 (AArch64 intrinsic).
+Original check `__ARM_ARCH >= 8` matches ARMv8-A 32-bit and tries to use it,
+causing implicit-declaration error on GCC 16.1.0 / 32-bit ARM target.
+
+Restrict to true AArch64 only.
+---
+ celt/arm/mathops_arm.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/celt/arm/mathops_arm.h b/celt/arm/mathops_arm.h
+index abcd123..def4567 100644
+--- a/celt/arm/mathops_arm.h
++++ b/celt/arm/mathops_arm.h
+@@ -38,7 +38,7 @@
+ 
+ static inline int32x4_t vroundf(float32x4_t x)
+ {
+-#  if defined(__aarch64__) || (defined(__ARM_ARCH) && __ARM_ARCH >= 8)
++#  if defined(__aarch64__)
+     return vcvtaq_s32_f32(x);
+ #  else
+     uint32x4_t sign = vandq_u32(vreinterpretq_u32_f32(x), vdupq_n_u32(0x80000000));

@@ -1,0 +1,36 @@
+--- a/common_drivers/arch/arm64/boot/dts/amlogic/Makefile
++++ b/common_drivers/arch/arm64/boot/dts/amlogic/Makefile
+@@ -59,6 +59,33 @@
+ dtb-y += s7d_s905x5m_ugoos_x5m_pro.dtb
+ dtb-y += s7d_s905x5m_ugoos_sk4.dtb
+ dtb-y += s7d_s905x5m_xiaomi_3rd_gen.dtb
++# NextOS 2026-05-12: DTBs s7d adicionais (X88 Pro X5M variants — bm221 confirmed
++# via tester X88 Pro S905A variant report). Source DTS existe no kernel, só
++# estavam ausentes do dtb-y.
++dtb-y += s7d_s905a_bm221.dtb
++dtb-y += s7d_s905x5m_bm201.dtb
++dtb-y += s7d_s905x5m_bm201_4g.dtb
++dtb-y += s7d_s905x5m_bm201_mxl258c.dtb
++dtb-y += s7d_s905x5m_bm201_soundbar.dtb
++dtb-y += s7d_s905x5m_bm202.dtb
++dtb-y += s7d_s905x5m_bm209.dtb
++# NextOS 2026-05-12: DTBs s6 (S905X5 não-M) — Mali-G310 boards (Ugoos AM9 variants).
++dtb-y += s6_s905x5_bl201.dtb
++dtb-y += s6_s905x5_bl201_2g.dtb
++dtb-y += s6_s905x5_bl201_8g.dtb
++dtb-y += s6_s905x5_bl201_16g.dtb
++dtb-y += s6_s905x5_bl201h1_8g.dtb
++dtb-y += s6_s905x5_bl204.dtb
++dtb-y += s6_s905x5_bl204_2g.dtb
++dtb-y += s6_s905x5_bl204_soundbar.dtb
++dtb-y += s6_s905x5_bl204h1.dtb
++dtb-y += s6_s905x5_bl204h1_2g.dtb
++dtb-y += s6_s905x5_bl207.dtb
++dtb-y += s6_s905x5_bl207_2g.dtb
++dtb-y += s6_s905x5_bl208.dtb
++dtb-y += s6_s905x5_bl209.dtb
++dtb-y += s6_s905x5_raman_ai.dtb
++dtb-y += s6_s905x5_raman_ai_p0.dtb
+ dtb-y += sm1_s905d3_libre_computer_solitude.dtb
+ dtb-y += sm1_s905x3_2g.dtb
+ dtb-y += sm1_s905x3_2g_1gbit.dtb

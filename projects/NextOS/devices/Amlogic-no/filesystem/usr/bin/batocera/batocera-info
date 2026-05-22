@@ -1,0 +1,145 @@
+#!/bin/bash
+# V14 Amlogic-no per-device override do batocera-info global:
+#  - V_GPU: detect dinâmico via /proc/device-tree/compatible (Mali-G310/G57/G31)
+#    em vez do hardcode "Mali-450 (utgard)" do master, herdado de Amlogic-old
+#  - V_ARCH: só a arquitetura nativa (aarch64) sem prefix distro — V_BUILD
+#    já carrega o nome do build completo. Antes era "NextOS-Retro-Elite-Edition
+#    (aarch64)" — redundante com BUILD field abaixo
+#  - V_GLES + V_VIDEODRIVER novos campos pra correlacionar com painel ES
+#
+# Amlogic-old/ng/nxtos/ne continuam usando o global (que tem Mali-450 hardcode
+# adequado pro Amlogic-old; ng/nxtos vão pegar override próprio em V15+).
+
+### short version (for osd)
+if test "$1" = "--short"
+then
+    BATT=$(cat /sys/class/power_supply/{BAT,bat}*/uevent 2>/dev/null | grep -E "^POWER_SUPPLY_CAPACITY=" | sed -e s+'^POWER_SUPPLY_CAPACITY='++ | sort -rn | head -1)
+    DT=$(date +%H:%M)
+    if test -n "${BATT}"
+    then
+	echo "Battery: ${BATT}% - ${DT}"
+    else
+	echo "${DT}"
+    fi
+    exit 0
+fi
+###
+
+# V_ARCH: apenas a arquitetura ABI nativa (limpa, sem distro brand)
+V_ARCH=$(uname -m)
+
+V_CPUNB=$(grep -E $'^processor\t:' /proc/cpuinfo | wc -l)
+V_CPUMODEL1=$(grep -E $'^model name\t:' /proc/cpuinfo | head -1 | sed -e s+'^model name\t: '++)
+if [ -z "${V_CPUMODEL1}" ]; then
+    DT_MODEL=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+    HW=$(grep -E '^Hardware\t:' /proc/cpuinfo | head -1 | sed -e s+'^Hardware\t: '++)
+    V_CPUMODEL1="${DT_MODEL:-${HW:-Cortex-A55}}"
+fi
+V_SYSTEM=$(uname -rs)
+V_BUILD=$(head -1 /etc/release 2>/dev/null)
+
+# V_GPU detect via /proc/device-tree/compatible (Amlogic-no Bifrost/Valhall):
+#   s7d   = S905X5M   (Valhall G310)  — VontarX5, Odroid C5
+#   s6    = S905X5    (Valhall G310)  — boards bl201/204/207/208/209, raman_ai
+#   s5    = S928X     (Valhall G57)   — Ugoos AM8/SK1, X96 X10 Pro, Tencent Aurora
+#   sc2   = S905X4    (Bifrost G31)   — HK1 Box, X96 Max+, A95X F4
+#   s4    = S905Y4    (Bifrost G31)   — variante Y handhelds
+#   g12b  = S922X     (Bifrost G52)   — Odroid N2 (não esperado em -no, mas safe fallback)
+#   sm1   = S905X3    (Bifrost G31)   — variante legada
+SOC_COMPAT=$(cat /proc/device-tree/compatible 2>/dev/null | tr -d '\0')
+case "${SOC_COMPAT}" in
+    *s7d*|*s6*)        V_GPU="Mali-G310 (Valhall)";  V_GLES="OpenGL ES 3.2" ;;
+    *s5*)              V_GPU="Mali-G57 (Valhall)";   V_GLES="OpenGL ES 3.2" ;;
+    *sc2*|*s4*|*sm1*)  V_GPU="Mali-G31 (Bifrost)";   V_GLES="OpenGL ES 3.2" ;;
+    *g12b*)            V_GPU="Mali-G52 (Bifrost)";   V_GLES="OpenGL ES 3.2" ;;
+    *)                 V_GPU="Mali (Amlogic-no)";    V_GLES="OpenGL ES 3.x" ;;
+esac
+
+# V_VIDEODRIVER: SDL3 video driver atualmente forçado/ativo
+V_VIDEODRIVER="${SDL_VIDEODRIVER:-auto}"
+
+V_DEVICE=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+
+# battery
+BATT=$(cat /sys/class/power_supply/{BAT,bat}*/uevent 2>/dev/null | grep -E "^POWER_SUPPLY_CAPACITY=" | sed -e s+'^POWER_SUPPLY_CAPACITY='++ | sort -rn | head -1)
+if test -n "${BATT}"
+then
+    echo "Battery: ${BATT}%"
+fi
+
+# PAD Battery
+for PADBAT in /sys/class/power_supply/*/device/uevent
+do
+    PADNAME=$(grep -E '^HID_NAME=' "${PADBAT}" | sed -e s+'^HID_NAME='++)
+    if test -n "${PADNAME}"
+    then
+	BATTUEVENT=$(dirname "${PADBAT}")
+	BATTUEVENT=$(dirname "${BATTUEVENT}")/uevent
+	BATT=$(grep -E "^POWER_SUPPLY_CAPACITY=" "${BATTUEVENT}" | sed -e s+'^POWER_SUPPLY_CAPACITY='++ | sort -rn | head -1)
+	echo "${PADNAME}: ${BATT}%"
+    fi
+done
+
+# temperature (millidegree → °C)
+TEMPE=$(cat /sys/devices/virtual/thermal/thermal_zone*/temp 2>/dev/null | sort -rn | head -1 | sed -e s+"[0-9][0-9][0-9]$"++)
+if test -n "${TEMPE}"
+then
+    echo "Temperature: ${TEMPE}°"
+fi
+
+echo "Architecture: ${V_ARCH}"
+echo "System: ${V_SYSTEM}"
+echo "Cpu model: ${V_CPUMODEL1}"
+echo "Cpu number: ${V_CPUNB}"
+if grep -q " avx2" /proc/cpuinfo
+then
+    echo "Cpu feature: avx2"
+fi
+
+[ -n "${V_BUILD}" ]       && echo "Build: ${V_BUILD}"
+[ -n "${V_DEVICE}" ]      && echo "Device: ${V_DEVICE}"
+[ -n "${V_GPU}" ]         && echo "GPU: ${V_GPU}"
+[ -n "${V_GLES}" ]        && echo "GLES: ${V_GLES}"
+[ -n "${V_VIDEODRIVER}" ] && echo "Video driver: ${V_VIDEODRIVER}"
+
+# Memória total + livre
+MEM_TOTAL_MB=$(awk '/MemTotal/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null)
+MEM_AVAIL_MB=$(awk '/MemAvailable/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null)
+[ -n "${MEM_TOTAL_MB}" ] && echo "Memory: ${MEM_AVAIL_MB} MB livre / ${MEM_TOTAL_MB} MB total"
+
+# Swap stack (ZRAM + swapfile)
+SWAP_INFO=""
+while read -r FNAME FTYPE FSIZE _; do
+    [ "${FNAME}" = "Filename" ] && continue
+    [ -z "${FNAME}" ] && continue
+    SIZE_MB=$(( FSIZE / 1024 ))
+    case "${FNAME}" in
+        */zram*) PART="ZRAM ${SIZE_MB}MB" ;;
+        *)       PART="swapfile ${SIZE_MB}MB" ;;
+    esac
+    SWAP_INFO="${SWAP_INFO}${SWAP_INFO:+, }${PART}"
+done < /proc/swaps
+[ -n "${SWAP_INFO}" ] && echo "Swap: ${SWAP_INFO}"
+
+# Armazenamento /storage
+STORAGE_USE=$(df -h /storage 2>/dev/null | awk 'NR==2 {print $3 " / " $2 " (" $5 " usado)"}')
+[ -n "${STORAGE_USE}" ] && echo "Storage: ${STORAGE_USE}"
+
+# Uptime
+if [ -r /proc/uptime ]; then
+    SECS=$(awk '{print int($1)}' /proc/uptime 2>/dev/null)
+    if [ -n "${SECS}" ] && [ "${SECS}" -gt 0 ]; then
+        D=$(( SECS / 86400 ))
+        H=$(( (SECS % 86400) / 3600 ))
+        M=$(( (SECS % 3600) / 60 ))
+        UP=""
+        [ "${D}" -gt 0 ] && UP="${D}d "
+        [ "${H}" -gt 0 ] && UP="${UP}${H}h "
+        UP="${UP}${M}min"
+        echo "Uptime: ${UP}"
+    fi
+fi
+
+# IP local
+IP=$(ip -4 -o addr show 2>/dev/null | awk '$2!="lo" {sub(/\/.*/,"",$4); print $4; exit}')
+[ -n "${IP}" ] && echo "IP: ${IP}"

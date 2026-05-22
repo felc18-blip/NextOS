@@ -1,0 +1,9 @@
+[Unit]
+Description=Report anonymous NextOS install statistics
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nextos-report-stats
+
+[Install]
+WantedBy=multi-user.target

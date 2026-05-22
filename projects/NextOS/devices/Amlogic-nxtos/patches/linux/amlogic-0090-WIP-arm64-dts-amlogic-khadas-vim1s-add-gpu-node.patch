@@ -1,0 +1,50 @@
+From 35718dfb088cdadc5b5ed348d07c16d1ccf043cd Mon Sep 17 00:00:00 2001
+From: Nick Xie <nick@khadas.com>
+Date: Mon, 2 Feb 2026 14:56:29 +0800
+Subject: [PATCH 90/94] WIP: arm64: dts: amlogic: khadas-vim1s: add gpu node
+
+Rebased for 7.1-rc3 (NextOS): context anchors adjusted to match
+mainline tree. Pure inserts: linux,cma reserved pool + vdd-gpu
+regulator + &gpu overlay.
+
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
+---
+ .../amlogic/meson-s4-s905y4-khadas-vim1s.dts  | 20 +++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/amlogic/meson-s4-s905y4-khadas-vim1s.dts b/arch/arm64/boot/dts/amlogic/meson-s4-s905y4-khadas-vim1s.dts
+index 27d0f61..d2def67 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-s4-s905y4-khadas-vim1s.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-s4-s905y4-khadas-vim1s.dts
+@@ -38,6 +38,14 @@ secmon_reserved: secmon@5000000 {
+ 		};
+ 	};
+ 
++	linux,cma {
++		compatible = "shared-dma-pool";
++		reusable;
++		size = <0x0 0x10000000>;
++		alignment = <0x0 0x400000>;
++		linux,cma-default;
++	};
++
+ 	emmc_pwrseq: emmc-pwrseq {
+ 		compatible = "mmc-pwrseq-emmc";
+ 		reset-gpios = <&gpio GPIOB_9 GPIO_ACTIVE_LOW>;
+@@ -103,6 +111,13 @@ vddio_ao1v8: regulator-vddio-ao1v8 {
+ 		regulator-always-on;
+ 	};
+ 
++	vdd_gpu: regulator-vdd-gpu {
++		compatible = "regulator-fixed";
++		regulator-name = "vdd-gpu";
++		regulator-min-microvolt = <800000>;
++		regulator-max-microvolt = <800000>;
++	};
++
+ 	/* SY8120B1ABC DC/DC Regulator. */
+ 	vddcpu: regulator-vddcpu {
+ 		compatible = "pwm-regulator";
+-- 
+2.43.0
+

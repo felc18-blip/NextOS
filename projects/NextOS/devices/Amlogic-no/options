@@ -1,0 +1,186 @@
+################################################################################
+# setup system defaults
+################################################################################
+
+  # The TARGET_CPU variable controls which processor should be targeted for
+  # generated code.
+    case ${TARGET_ARCH} in
+      aarch64)
+        TARGET_KERNEL_ARCH="arm64"
+        TARGET_KERNEL_PATCH_ARCH="aarch64"
+        TARGET_CPU="cortex-a53"
+        TARGET_CPU_FLAGS="+crc+fp+simd"
+        ;;
+      arm)
+        TARGET_KERNEL_ARCH="arm64"
+        TARGET_KERNEL_PATCH_ARCH="aarch64"
+        TARGET_FLOAT="hard"
+        TARGET_CPU="cortex-a53"
+        TARGET_CPU_FLAGS="+crc"
+        TARGET_FPU="neon-fp-armv8"
+        ;;
+    esac
+
+  # Bootloader to use (syslinux / u-boot / atv-bootloader / bcm2835-bootloader)
+    BOOTLOADER="u-boot"
+
+  # Kernel target
+    KERNEL_TARGET="Image.lzo"
+
+  # Kernel extra targets to build
+    KERNEL_UBOOT_EXTRA_TARGET=""
+
+  # Build Android kernel image using mkbootimg
+    BUILD_ANDROID_BOOTIMG="yes"
+
+  # Additional options to be passed to Android mkbootimg
+  # NextOS 2026-05-12: confirmado via CoreELEC-Amlogic-no.aarch64-22.0-Piers_alpha3
+  # oficial = 0x02000000 (mesmo do nosso). EmuELEC kag0tt usa 0x01080000 (fork
+  # custom). Ambos bootam no S905X5-M, então o offset não é a causa do não-boot.
+    ANDROID_BOOTIMG_OPTIONS="--base 0x0 --kernel_offset 0x2000000"
+
+  # Additional kernel make parameters (for example to specify the u-boot loadaddress)
+    KERNEL_MAKE_EXTRACMD="dtbs"
+
+  # Additional kernel dependencies
+    KERNEL_EXTRA_DEPENDS_TARGET=""
+
+  # Kernel to use. values can be:
+  # default:  default mainline kernel
+    LINUX="amlogic-5.15"
+
+  # kernel image name
+    KERNEL_NAME="kernel.img"
+
+  # kernel compiler (gcc or clang)
+    KERNEL_COMPILER="clang"
+
+################################################################################
+# setup build defaults
+################################################################################
+
+  # Project CFLAGS
+    PROJECT_CFLAGS=""
+
+  # SquashFS compression method (gzip / lzo / xz)
+    SQUASHFS_COMPRESSION="lzo"
+
+################################################################################
+# setup project defaults
+################################################################################
+
+  # build and install ALSA Audio support (yes / no)
+    ALSA_SUPPORT="yes"
+
+  # OpenGL(X) implementation to use (no / Mesa)
+    OPENGL="no"
+
+  # OpenGL-ES implementation to use (no / bcm2835-driver / gpu-viv-bin-mx6q / opengl-meson)
+  # opengl-meson instala blobs Valhall (libMali.valhall.g310.so + g57) +
+  # symlinks libEGL/libGLES* → libMali.so (Valhall). X4 S905X4 Bifrost
+  # ESTÁ FORA DESSA ROM (continua em Elite Edition antiga); Amlogic-no
+  # atende somente S905X5/X5M/S928X (Valhall blob).
+    OPENGLES="opengl-meson"
+
+  # Mali family marker — Valhall (g310 / g57). Usado por nextos/package.mk
+  # e compat/lib32 pra skipear o Mesa-only EGL symlink redirect que
+  # se aplica em Amlogic-nxtos (Lima/Mesa). opengl-meson provê libMali.so.
+    MALI_FAMILY="valhall"
+
+  # include uvesafb support (yes / no)
+    UVESAFB_SUPPORT="no"
+
+  # Displayserver to use (x11 / no)
+    DISPLAYSERVER="wl"
+
+  # Windowmanager to use (fluxbox / none)
+    WINDOWMANAGER="swaywm-env"
+
+  # Xorg Graphic drivers to use
+    GRAPHIC_DRIVERS="mali"
+
+  # Use a vendor specific KODI repo
+    KODI_VENDOR="amlogic-5.15"
+
+  # KODI Player implementation to use (default / bcm2835-driver / libfslvpuwrap / libamcodec)
+    KODIPLAYER_DRIVER="libamcodec"
+
+  # Modules to install in initramfs for early boot
+    INITRAMFS_MODULES=""
+
+  # additional drivers to install:
+  # for a list of additinoal drivers see packages/linux-drivers
+  # Space separated list is supported,
+  # e.g. ADDITIONAL_DRIVERS="DRIVER1 DRIVER2"
+  # NextOS 2026-05-13 (V7): TODOS drivers WiFi do EmuELEC Piers original ativos.
+  # Os 2 drivers que tinhamos pulado no V6 (refactor MLO cfg80211 do kernel
+  # 5.15.196) ganharam fixes per-device via KCFLAGS pra ativar backports ocultos:
+  #   ap6xxx-aml:    -DCFG80211_BKPORT_MLO -DANDROID13_KERNEL515_BKPORT
+  #                  (WDEV_CLIENT -> wdev->u.client.field + sed
+  #                  cfg80211_ch_switch_notify 4 args)
+  #   RTL8852BE-aml: -DCONFIG_MLD_KERNEL_PATCH -D__ANDROID_COMMON_KERNEL__
+  #                  (wdev->links[0].* + NL80211_BAND_LC entry +
+  #                  cfg80211_ch_switch_started_notify 6 args)
+  #   RTW88:         sed `sta->X` -> `sta->deflink.X` (9 membros) — V6
+  # gpu-aml = mali_kbase vendor (Valhall jm + csf builds) pra S905X5/X5M/S928X.
+  # Bifrost (X4) NÃO está na lista — Amlogic-no atende somente Valhall.
+  ADDITIONAL_DRIVERS="gpu-aml openvfd-driver media_modules-aml wifi_dummy-aml \
+                      ap6xxx-aml aic8800-sdio RTW88 RTL8189FS \
+                      RTL8852BE-aml RTL8723DS-aml RTL8851BU RTL8852BS-aml \
+                      mt76 mt7668-wifi-bt w1-aml w2-aml aml_bt uwe5631-aml"
+
+  # additional Firmware to use (dvb-firmware, misc-firmware, wlan-firmware)
+  # Space separated list is supported,
+  # e.g. FIRMWARE="dvb-firmware misc-firmware wlan-firmware"
+  # FIRMWARE+=" "
+
+  # build and install ATV IR remote support (yes / no)
+    ATVCLIENT_SUPPORT="no"
+
+  # Amlogic IR remote support (yes / no)
+    AMREMOTE_SUPPORT="yes"
+
+  # build with installer (yes / no)
+    INSTALLER_SUPPORT="no"
+
+  # build and install driver addons (yes / no)
+    DRIVER_ADDONS_SUPPORT="no"
+
+  # driver addons to install:
+  # for a list of additinoal drivers see packages/linux-driver-addons
+  # Space separated list is supported,
+    DRIVER_ADDONS=""
+
+  # additional packages to install:
+  # Space separated list is supported,
+  # e.g. ADDITIONAL_PACKAGES="PACKAGE1 PACKAGE2"
+  # V14: wireless-regdb drop regulatory.db + .p7s em /usr/lib/firmware/ pra
+  # silenciar "Direct firmware load for regulatory.db failed -2" no journal.
+  # Cobre kernel cfg80211 request_firmware() default no boot.
+    ADDITIONAL_PACKAGES+=" wireless-regdb"
+
+  # compat/lib32 (rsync local durante o install do lib32).
+
+  # add OOTB support for IR remote
+  # IR_REMOTE_KEYMAPS+=""
+
+  # build with entware installer
+    ENTWARE_SUPPORT="yes"
+    ENTWARE_ARCH="aarch64-k3.10"
+
+  # CoreELEC Subdevices
+    # Amlogic-no agora só atende S905X5/X5M/S928X (Valhall).
+    # X4 (S905X4 Bifrost) ficou fora — usa rom Elite Edition antiga.
+    # Odroid_C5 = SD boot direto via aml_autoscript + cfgload.
+    SUBDEVICES="Odroid_C5"
+
+  # TEE supported SoC — Amlogic-no atende somente Valhall
+    TEE_SOC="S928X A311D2 S905X5M S905X5"
+
+# Amlogic-no kernel 5.15 BSP: nextos-joypad usa linux/input-polldev.h
+# removido em 5.x+. Disable build.
+ARCHR_JOYPAD="no"
+
+# OpenGL ES support — usado por flycast-lr e outros emuladores libretro.
+OPENGLES_SUPPORT="yes"
+PREFER_GLES="yes"

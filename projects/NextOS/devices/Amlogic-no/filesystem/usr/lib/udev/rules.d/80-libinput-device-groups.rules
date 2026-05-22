@@ -1,0 +1,14 @@
+# V14 Amlogic-no: regra original neutralizada — callout binary
+# /usr/lib/udev/libinput-device-group ausente no FS (libinput-utils não
+# empacotado). Sintoma no journal:
+#   Failed to find and pin callout binary "/usr/lib/udev/libinput-device-group"
+#
+# Regra é cosmética — agrupa input devices por phys path pra libinput.
+# SDL3 (ES + RetroArch) lê /dev/input/eventX direto, sem libinput, então
+# não há perda de funcionalidade.
+#
+# Pra reativar: empacotar libinput-utils e dropar /usr/lib/udev/libinput-device-group
+
+ACTION=="remove", GOTO="libinput_device_group_end"
+
+LABEL="libinput_device_group_end"

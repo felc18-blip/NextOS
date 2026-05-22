@@ -1,0 +1,24 @@
+[Unit]
+Description=NextOS Memory Manager
+# Run AFTER /storage is mountable so we can read /storage/.config/swap.conf
+# for user overrides. RequiresMountsFor pulls in the mount automatically.
+After=local-fs.target nextos-automount.service
+RequiresMountsFor=/storage
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Environment=HOME=/storage
+Type=oneshot
+ExecStart=/usr/bin/nextos-memory-manager --setup
+ExecReload=/usr/bin/nextos-memory-manager --reload
+ExecStop=/usr/bin/nextos-memory-manager --stop
+RemainAfterExit=yes
+
+[Install]
+# Was WantedBy=basic.target, which put the ~3.9s modprobe zram + udev wait
+# + sysctl tuning loop on the critical path before sockets.target →
+# sysinit.target. Moving to multi-user.target keeps swap+KSM+VM tuning
+# functional (it still happens before EmulationStation starts) but
+# unblocks sysinit/basic for the rest of the boot.
+WantedBy=multi-user.target

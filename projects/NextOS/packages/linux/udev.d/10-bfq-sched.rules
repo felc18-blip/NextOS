@@ -1,0 +1,8 @@
+# Set BFQ scheduler + low-latency if compiled in kernel; else use the
+# default (mq-deadline on mainline). Guarded so kernels without BFQ don't
+# spam "Failed to write ATTR" errors. Other attrs work on any scheduler.
+ACTION=="add|change", KERNEL=="mmcblk[0-9]*", TEST=="queue/iosched/low_latency", ATTR{queue/scheduler}="bfq"
+ACTION=="add|change", KERNEL=="mmcblk[0-9]*", TEST=="queue/iosched/low_latency", ATTR{queue/iosched/low_latency}="1"
+ACTION=="add|change", KERNEL=="mmcblk[0-9]*", TEST=="queue/read_ahead_kb",  ATTR{queue/read_ahead_kb}="2048"
+ACTION=="add|change", KERNEL=="mmcblk[0-9]*", TEST=="queue/nr_requests",    ATTR{queue/nr_requests}="128"
+ACTION=="add|change", KERNEL=="mmcblk[0-9]*", TEST=="queue/rq_affinity",    ATTR{queue/rq_affinity}="2"

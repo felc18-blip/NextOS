@@ -1,0 +1,21 @@
+From: Felipe <fel.c18@gmail.com>
+Date: 2026-05-16
+Subject: meson: remove -Werror=override-init (GCC 15 breaks errno-to-name.h)
+
+GCC 15 valida designated initializer overrides mais agressivamente.
+errno-to-name.h (auto-gerado) tem aliases (EAGAIN/EWOULDBLOCK,
+EDEADLK/EDEADLOCK, ENOTSUP/EOPNOTSUPP) que disparam -Werror=override-init.
+
+Downgrade pra warning (sem o Werror prefix).
+
+--- a/meson.build
++++ b/meson.build
+@@ -346,7 +346,7 @@
+         '-Werror=missing-declarations',
+         '-Werror=missing-prototypes',
+         '-Werror=overflow',
+-        '-Werror=override-init',
++        '-Woverride-init',
+         '-Werror=return-type',
+         '-Werror=shift-count-overflow',
+         '-Werror=shift-overflow=2',

@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present NextOS (https://github.com/felc18-blip/NextOS)
+
+. ${ROOT}/packages/audio/libogg/package.mk
+
+PKG_CMAKE_OPTS_TARGET="-DBUILD_SHARED_LIBS=ON \
+                       -DINSTALL_DOCS=OFF"

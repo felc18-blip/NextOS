@@ -1,0 +1,24 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2026 NextOS-Elite-Edition (felipe)
+
+### Override LE-factory `Storage=volatile` em journald.conf pra `persistent`.
+# Sem isto, journal vive em tmpfs e some no reboot — invialibiliza debug
+# pos-mortem (foi exatamente o que travou o boot da v1: precisei montar SD
+# no PC e ler /var/log/boot.log pq nao tinha journal persistido).
+#
+# /var/log e bind-mount de /storage/.cache/log, entao /var/log/journal lands
+# no ext4 STORAGE partition automaticamente.
+#
+# Idempotent: a cada boot reescreve o conf.d/ — sem efeito se ja existir
+# identico. Journald so recarrega na proxima boot, mas tudo bem.
+mkdir -p /etc/systemd/journald.conf.d
+cat <<EOF >/etc/systemd/journald.conf.d/10-persistent.conf
+[Journal]
+Storage=persistent
+SystemMaxUse=64M
+SystemKeepFree=128M
+SystemMaxFileSize=16M
+MaxRetentionSec=14d
+EOF
+mkdir -p /var/log/journal

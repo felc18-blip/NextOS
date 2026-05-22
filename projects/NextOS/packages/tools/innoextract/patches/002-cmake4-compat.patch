@@ -1,0 +1,19 @@
+From: Felipe <fel.c18@gmail.com>
+Date: 2026-05-16
+Subject: VersionScript.cmake: bump minimum CMake to 3.5 (cmake 4.0+ compat)
+
+cmake 4.0.x removeu compatibility com VERSION < 3.5. VersionScript.cmake
+roda standalone via `cmake -P` (subshell), então o flag CMAKE_POLICY_VERSION_MINIMUM
+do package.mk principal não chega aqui. Bump direto no script.
+
+--- a/cmake/VersionScript.cmake
++++ b/cmake/VersionScript.cmake
+@@ -17,7 +17,7 @@
+
+ # 3. This notice may not be removed or altered from any source distribution.
+
+-cmake_minimum_required(VERSION 2.8)
++cmake_minimum_required(VERSION 3.5)
+
+ # CMake script that reads a VERSION file and the current git history and the calls configure_file().
+ # This is used by version_file() in VersionString.cmake

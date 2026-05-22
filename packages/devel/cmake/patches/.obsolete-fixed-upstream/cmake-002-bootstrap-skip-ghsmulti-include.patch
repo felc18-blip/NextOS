@@ -1,0 +1,26 @@
+From: Felipe <fel.c18@gmail.com>
+Date: 2026-05-16
+Subject: bootstrap: don't include cmGlobalGhsMultiGenerator.h when CMAKE_BOOTSTRAP
+
+GCC 16 host com devirtualization especulativa em templates faz o linker buscar
+cmGlobalGhsMultiGenerator::cmGlobalGhsMultiGenerator(cmake*) e GetDocumentation()
+em cmake::CreateGlobalGenerator + cmake::AppendGlobalGeneratorsDocumentation,
+mesmo essas funções não tocando GhsMulti. Bootstrap não compila
+cmGlobalGhsMultiGenerator.cxx, então link falha.
+
+A registração via NewFactory() já é protegida por #if !defined(CMAKE_BOOTSTRAP);
+basta ocultar o #include também. Sem include, sem vtable, nada pra devirtualizar.
+
+Atualizado pra cmake 4.3.2 (offset adaptado).
+
+--- a/Source/cmake.cxx
++++ b/Source/cmake.cxx
+@@ -140,7 +140,7 @@
+
+ // NOTE: the __linux__ macro is predefined on Android host too, but
+ // main CMakeLists.txt filters out this generator by host name.
+-#if (defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)
++#if !defined(CMAKE_BOOTSTRAP) && ((defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32))
+ #  include "cmGlobalGhsMultiGenerator.h"
+ #endif
+
