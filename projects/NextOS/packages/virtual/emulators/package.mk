@@ -266,15 +266,18 @@ makeinstall_target() {
     H700|RK3326|RK3399|RK3566|RK3588|Amlogic-nxtos)
       add_emu_core atomiswave retroarch flycast2021 true
       add_emu_core atomiswave retroarch flycast false
+      add_emu_core atomiswave retroarch morpheuscast_xtreme32 false
       add_emu_core atomiswave flycast flycast-sa false
       ;;
     SDM845|SM8250|SM8550|SM8650|S922X)
       add_emu_core atomiswave flycast flycast-sa true
       add_emu_core atomiswave retroarch flycast false
       add_emu_core atomiswave retroarch flycast2021 false
+      add_emu_core atomiswave retroarch morpheuscast_xtreme32 false
       ;;
     *)
       add_emu_core atomiswave retroarch flycast true
+      add_emu_core atomiswave retroarch morpheuscast_xtreme32 false
       add_emu_core atomiswave flycast flycast-sa false
       ;;
   esac
