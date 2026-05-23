@@ -27,4 +27,17 @@ makeinstall_target() {
 
   cp -rf ${PKG_DIR}/scripts/* ${INSTALL}/usr/bin
   chmod 755 ${INSTALL}/usr/bin/start_biginstinct.sh
+
+  # Per-device userdata (AutoAssign=1 default — mesmo padrao bigpemu-sa)
+  if [ -d "${PKG_DIR}/config/${DEVICE}" ]; then
+    mkdir -p ${INSTALL}/usr/config/biginstinct/userdata
+    cp -rf ${PKG_DIR}/config/${DEVICE}/BigInstinctConfig.bigpcfg* ${INSTALL}/usr/config/biginstinct/userdata/
+  fi
+
+  # Amlogic-nxtos: symlink gamecontrollerdb pro path que biginstinct procura.
+  # Sem isso (mesma codebase bigpemu) controle "aparece mas nao funciona" pq
+  # SDL_GameController nao acha mapping pro USB Gamepad.
+  if [ "${DEVICE}" = "Amlogic-nxtos" ]; then
+    ln -sf /usr/config/SDL-GameControllerDB/gamecontrollerdb.txt ${INSTALL}/usr/bin/biginstinct/gamecontrollerdb.txt
+  fi
 }

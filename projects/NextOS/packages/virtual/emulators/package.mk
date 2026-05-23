@@ -86,7 +86,7 @@ case "${DEVICE}" in
     [ "${ENABLE_32BIT}" == "true" ] && EMUS_32BIT="box86 daedalusx64-sa pcsx_rearmed-lr desmume-lr gpsp-lr"
     PKG_DEPENDS_TARGET+=" common-shaders glsl-shaders"
     PKG_EMUS+=" box64 daedalusx64-sa drastic-sa duckstation-sa mednafen portmaster scummvmsa yabasanshiro-sa \
-                bigpemu-sa melonds-sa \
+                biginstinct-sa bigpemu-sa melonds-sa \
                 hypseus kronos-sa"
     LIBRETRO_CORES+=" flycast2021-lr geolith-lr uae4arm \
                       beetle-psx-lr beetle-saturn-lr boom3-lr bsnes-hd-lr bsnes-lr \
@@ -748,6 +748,14 @@ makeinstall_target() {
   ### Infocom Z-Machine
   add_emu_core zmachine retroarch mojozork true
   add_es_system zmachine
+
+  ### Killer Instinct Arcade (BigInstinct standalone, Rich Whitehouse)
+  case ${DEVICE} in
+    Amlogic-nxtos)
+      add_emu_core killerinstinct biginstinct biginstinct-sa true
+      add_es_system killerinstinct
+      ;;
+  esac
 
   ### Arcade (MAME)
   add_emu_core mame retroarch mame2003_plus true
