@@ -43,6 +43,15 @@ if echo ${HW_DEVICE} | grep -q "S922X"; then
 elif echo ${HW_DEVICE} | grep -q "RK3566"; then
   export LD_LIBRARY_PATH="/usr/share/bigpemu"
   LD_PRELOAD=/usr/share/bigpemu/libOpenGL.so ${EMUPERF} /usr/share/bigpemu/bigpemu "${1}"
+elif echo ${HW_DEVICE} | grep -q "Amlogic-nxtos"; then
+  # Mali-450 Utgard GLES2-only via Mesa Lima. bigpemu (aarch64) tenta carregar
+  # desktop GL e falha "vital systems failed". Preload gl4es libGL.so.1 (que
+  # traduz desktop GL → GLES2) + Wayland video driver (sem isso SDL tenta
+  # KMSDRM e bate com sway compositor). Validado 2026-05-23.
+  export SDL_VIDEODRIVER=wayland
+  export SDL_AUDIODRIVER=pulseaudio
+  cd /usr/share/bigpemu
+  LD_PRELOAD=/usr/lib/gl4es/libGL.so.1 ${EMUPERF} /usr/share/bigpemu/bigpemu "${1}"
 else
   ${EMUPERF} /usr/share/bigpemu/bigpemu "${1}"
 fi
