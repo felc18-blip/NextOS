@@ -724,6 +724,14 @@ makeinstall_target() {
       add_emu_core atarijaguar bigpemu bigpemu-sa true
       install_script "Start BigPEmu.sh"
     ;;
+    Amlogic-nxtos)
+      # bigpemu-sa ja em PKG_EMUS pra nxtos; binario eh ARM32 (32-bit fork pra
+      # Mali-450). Adicionar como opcao secundaria — virtualjaguar libretro
+      # default. start_bigpemu.sh ja existe via package mas binario pode estar
+      # ausente se build 32-bit nao rodou (ENABLE_32BIT=true requerido).
+      add_emu_core atarijaguar bigpemu bigpemu-sa false
+      install_script "Start BigPEmu.sh"
+    ;;
   esac
   add_es_system atarijaguar
 
@@ -1474,6 +1482,15 @@ makeinstall_target() {
 
   mkdir -p ${INSTALL}/usr/config/emulationstation
   cp -f ${ESTMP}/es_systems.cfg ${INSTALL}/usr/config/emulationstation
+
+  # Amlogic-nxtos overrides: extensions / fixes pos mk_es_systems
+  if [ "${DEVICE}" = "Amlogic-nxtos" ]; then
+    # Atari Jaguar: ROMs no Cobalto/backup vem em .zip. virtualjaguar libretro
+    # le zip nativo via RetroArch — adicionar .zip a extension nao quebra
+    # bigpemu-sa (32-bit ARM fork, espera arquivo extraido — start_bigpemu.sh
+    # cuida do unzip se preciso).
+    sed -i '/<name>atarijaguar<\/name>/,/<\/system>/ s|<extension>\([^<]*\)</extension>|<extension>\1 .zip</extension>|' ${INSTALL}/usr/config/emulationstation/es_systems.cfg
+  fi
 
   if [ "${WINDOWMANAGER}" = "weston" ]; then
     sed -i 's~%RUNCOMMAND%~weston-terminal --command="%ROM%"~g' ${INSTALL}/usr/config/emulationstation/es_systems.cfg
