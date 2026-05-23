@@ -78,5 +78,15 @@ makeinstall_target() {
   mkdir -p ${USHAREDIR}
   cp ${PKG_BUILD}/data/RiceVideoLinux.ini ${USHAREDIR}
   chmod 0644 ${USHAREDIR}/RiceVideoLinux.ini
+
+  # Amlogic-nxtos (Mali-450 Lima): hack per-game "ZHack" causa SIGSEGV no
+  # Mesa Lima quando Rice tenta setar GALLIUM_HUD via hack-specific path
+  # (mensagem "Enabled gallium_hud: unknown driver query 'off'"). Sem o
+  # hack o jogo abre OK em Mali-450. Remover apenas entries com ZHack.
+  if [ "${DEVICE}" = "Amlogic-nxtos" ]; then
+    # GoldenEye 007 — bloco {d150bcdca31afd09-45}, removido por ter ZHack
+    sed -i '/{d150bcdca31afd09-45}/,/^$/d' ${USHAREDIR}/RiceVideoLinux.ini
+    # Outros entries ZHack tambem podem precisar — adicionar conforme aparecerem
+  fi
 }
 
