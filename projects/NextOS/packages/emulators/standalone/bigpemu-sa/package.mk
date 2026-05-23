@@ -64,4 +64,12 @@ makeinstall_target() {
  
   mkdir -p ${INSTALL}/usr/config/bigpemu/userdata
   cp -rf ${PKG_DIR}/config/${DEVICE}/BigPEmuConfig.bigpcfg* ${INSTALL}/usr/config/bigpemu/userdata/
+
+  # Amlogic-nxtos: link gamecontrollerdb.txt do SDL DB pro /usr/share/bigpemu/.
+  # Sem isso bigpemu nao acha mapping pro USB Gamepad e controle nao responde
+  # ("controle aparece mas nao funciona"). Symlink garante atualizacao automatica
+  # quando SDL DB upgrade.
+  if [ "${DEVICE}" = "Amlogic-nxtos" ]; then
+    ln -sf /usr/config/SDL-GameControllerDB/gamecontrollerdb.txt ${INSTALL}/usr/share/bigpemu/gamecontrollerdb.txt
+  fi
 }
