@@ -21,6 +21,14 @@ export DEVICE_FUNC_KEYA_MODIFIER="BTN_THUMBL"
 export DEVICE_FUNC_KEYB_MODIFIER="BTN_THUMBR"
 fi
 
+# Default modifiers para gamepads gen'ricos (USB Gamepad / Anbernic / etc).
+# Sem defaults, sed substitui @DEVICE_FUNC_KEY[AB]_MODIFIER@ por @DEVICE_@
+# (string vazia) e o mednafen recusa o cfg inteiro com "Bad joystick bn string"
+# → exit 255 antes de inicializar video. Bug presente no Arch-R upstream pra
+# qualquer controle que nao tenha quirk per-device.
+[ -z "${DEVICE_FUNC_KEYA_MODIFIER}" ] && export DEVICE_FUNC_KEYA_MODIFIER="BTN_THUMBL"
+[ -z "${DEVICE_FUNC_KEYB_MODIFIER}" ] && export DEVICE_FUNC_KEYB_MODIFIER="BTN_THUMBR"
+
 # explcitly override d-pad that are hats, they are somehow randomly mapped as analog in mednafen
 if [[ "${NAME}" = "X-Box360" ]]
 then

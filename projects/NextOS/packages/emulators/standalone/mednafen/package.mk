@@ -9,11 +9,13 @@ PKG_SITE="https://mednafen.github.io/"
 #PKG_URL="${PKG_SITE}/releases/files/${PKG_NAME}-${PKG_VERSION}.tar.xz"
 # Fork with CHD additions
 PKG_URL="https://github.com/sydarn/mednafen/archive/refs/tags/1.32.1-chd.tar.gz"
-PKG_DEPENDS_TARGET="toolchain SDL2 flac zstd zlib"
+PKG_DEPENDS_TARGET="toolchain SDL2 flac zstd zlib gptokeyb"
 PKG_TOOLCHAIN="configure"
 
 case ${DEVICE} in
-  H700|SM8*)
+  H700|SM8*|Amlogic-nxtos)
+    # SDL2 input only (avoids Linux joystick API path) — Mali-450 + gen'rico
+    # USB Gamepad mapeia mais limpo via SDL2 que via direct evdev.
     PKG_PATCH_DIRS+=" sdl-input"
   ;;
 esac
@@ -62,4 +64,6 @@ makeinstall_target() {
 
   mkdir -p ${INSTALL}/usr/config/${PKG_NAME}
   cp ${PKG_DIR}/config/common/* ${INSTALL}/usr/config/${PKG_NAME}
+  # mednafen.gptk pode ter vindo com bits +x do source tree; reset pro modo correto
+  chmod 0644 ${INSTALL}/usr/config/${PKG_NAME}/mednafen.gptk 2>/dev/null || true
 }

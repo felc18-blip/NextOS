@@ -1,0 +1,24 @@
+# Mednafen MD nxtos: SEM kill_mode (deixa surface Wayland orfa).
+# Select como hotkey + Start = ESC (mednafen command.exit = ESC), saida limpa
+hotkey = select
+
+a = x
+b = z
+x = c
+y = a
+
+l1 = q
+r1 = w
+l2 = e
+r2 = r
+
+start = enter
+back  = backspace
+guide = esc
+
+hotkey_start = esc
+
+up    = up
+down  = down
+left  = left
+right = right
