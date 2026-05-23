@@ -46,6 +46,15 @@ fi
 
 # Copy files to TMP
 cp ${M64PCONF} ${TMP}
+
+# Amlogic-nxtos: setar Joy Mapping Stop = Select+Start (B8+B9 do USB Gamepad)
+# em vez do default J0B7/B6 (R2+L2) — convencao Black Retro mata-jogo +
+# bate com gptokeyb dos outros emus. Aplicar tanto no M64PCONF (persistido)
+# quanto na copia /tmp pra valer no launch atual.
+if [ "${HW_DEVICE}" = "Amlogic-nxtos" ]; then
+    sed -i 's|^Joy Mapping Stop = .*|Joy Mapping Stop = "J0B8/B9"|' "${M64PCONF}" "${TMP}/mupen64plus.cfg"
+fi
+
 if [ "${CON}" = "custom" ]; then
     cp ${CUSTOMINP} ${TMP}/InputAutoCfg.ini
 elif [ "${CON}" = "standard" ]; then
