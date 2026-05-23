@@ -919,8 +919,9 @@ makeinstall_target() {
     Amlogic-nxtos)
       # drastic-sa validado no NextOS-Elite-Edition (S905W Mali-450).
       add_emu_core nds drastic drastic-sa true
-      add_emu_core nds retroarch melondsds false
+      add_emu_core nds melonds melonds-sa false
       add_emu_core nds retroarch melonds false
+      add_emu_core nds retroarch melondsds false
       install_script "Start MelonDS.sh"
       ;;
     *)
