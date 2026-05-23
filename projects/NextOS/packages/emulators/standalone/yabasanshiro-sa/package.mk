@@ -12,7 +12,7 @@ PKG_LICENSE="GPLv2"
 # VIDCore (Saturn VDP1/VDP2).
 PKG_SITE="https://github.com/felc18-blip/yabasanshiro-1.5-nextos"
 PKG_URL="${PKG_SITE}.git"
-PKG_VERSION="ee2ba850a827e0c19a90b8c3f14a5d0b205cb8da"
+PKG_VERSION="a351551771b5d0dbfb5b3b5764f59dad235bc0b3"
 PKG_GIT_CLONE_BRANCH="nextos-mali450-gles2"
 PKG_ARCH="aarch64"
 PKG_DEPENDS_TARGET="toolchain SDL2 boost openal-soft zlib"
