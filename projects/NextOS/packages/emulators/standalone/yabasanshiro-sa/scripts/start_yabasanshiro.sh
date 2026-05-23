@@ -68,6 +68,16 @@ EOF
   fi
 fi
 
+# NextOS Mali-450 patch: yabasanshiro hardcoded em getConfigPath() abre
+# ~/.emulationstation/es_temporaryinput.cfg pra carregar mapping do joystick
+# detectado. ES escreve em es_input.cfg (sem _temporary), entao sem o symlink
+# loadInputConfig retorna false → "Added unconfigured joystick" → menu_inputs_
+# fica com select_button_=-1 → botao SELECT nao abre menu in-game.
+# Cria symlink idempotente (forca atualizacao se existe).
+if [ -e "/storage/.emulationstation/es_input.cfg" ]; then
+  ln -sfn es_input.cfg /storage/.emulationstation/es_temporaryinput.cfg
+fi
+
 BIOS=""
 GAME=$(echo "${1}"| sed "s#^/.*/##")
 PLATFORM=$(echo "${2}"| sed "s#^/.*/##")
