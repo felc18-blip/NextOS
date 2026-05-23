@@ -5,10 +5,15 @@
 
 PKG_NAME="yabasanshiro-sa"
 PKG_LICENSE="GPLv2"
-PKG_SITE="https://github.com/sydarn/yabause"
+# Fork felc18-blip/yabasanshiro-1.5-nextos branch nextos-mali450-gles2 (forked
+# from sydarn/yabause @ pi4-update) com patch nanogui pra Mali-450 GLES2:
+# fallback gracioso quando NanoVG init falha (Mesa Lima nao tem stencil+AA
+# que NanoVG quer). Overlay menu desabilita, jogo segue renderizando via
+# VIDCore (Saturn VDP1/VDP2).
+PKG_SITE="https://github.com/felc18-blip/yabasanshiro-1.5-nextos"
 PKG_URL="${PKG_SITE}.git"
-PKG_VERSION="a40dace1ae0af3ebd45848549fdf396f40e3930f"
-PKG_GIT_CLONE_BRANCH="pi4-update"
+PKG_VERSION="4744a93db7e1b8bf5717556eca76339f909a6398"
+PKG_GIT_CLONE_BRANCH="nextos-mali450-gles2"
 PKG_ARCH="aarch64"
 PKG_DEPENDS_TARGET="toolchain SDL2 boost openal-soft zlib"
 PKG_LONGDESC="Yabause is a Sega Saturn emulator and took over as Yaba Sanshiro"
@@ -72,6 +77,17 @@ pre_configure_target() {
                            -Dpng_STATIC_LIBRARIES=${SYSROOT_PREFIX}/usr/lib/libpng16.so \
                            -DCMAKE_BUILD_TYPE=Release \
                            -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
+
+  # NextOS Amlogic-nxtos: Mali-450 Utgard via Mesa Lima is GLES2-only — no
+  # GLES3 / no texelFetch / no VAO / no compute. VIDOGL renderer hard-codes
+  # GLSL ES 3.00. MALI_GLES2_ONLY flag in our fork routes init to VIDSoft
+  # (CPU render) + patches the SetupGL display blit shader down to GLSL ES
+  # 1.00 + skips VAO setup. Picks up via the fork's nextos-mali450-gles2
+  # branch (see PKG_VERSION above).
+  if [ "${DEVICE}" = "Amlogic-nxtos" ]; then
+    PKG_CMAKE_OPTS_TARGET+=" -DCMAKE_C_FLAGS=-DMALI_GLES2_ONLY=1 \
+                             -DCMAKE_CXX_FLAGS=-DMALI_GLES2_ONLY=1"
+  fi
 }
 
 makeinstall_target() {
