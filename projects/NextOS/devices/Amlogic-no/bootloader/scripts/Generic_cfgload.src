@@ -3,7 +3,7 @@ echo "Using device ${device}, number ${devnr}, partition ${partnr}, CoreELEC on 
 setenv remotewakeup "0xffffffff"
 setenv decode_type "0"
 setenv remotewakeupmask "0xffffffff"
-setenv coreelec "quiet loglevel=0 vt.global_cursor_default=0 consoleblank=0 systemd.show_status=false mitigations=off audit=0"
+setenv coreelec "quiet"
 setenv vout "1080p60hz"
 setenv frac_rate_policy "0"
 setenv consoleopt "console=tty0 no_console_suspend"

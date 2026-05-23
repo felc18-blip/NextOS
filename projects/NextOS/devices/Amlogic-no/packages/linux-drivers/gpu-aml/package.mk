@@ -3,13 +3,12 @@
 # Copyright (C) 2026-present NextOS-Retro-Elite-Edition
 #
 # Per-device override pra Amlogic-no — alinhamento com CE-22 oficial
-# (22.0-Piers_alpha3). Builda 2 .ko: valhall_csf (G310 do S905X5/X5M) e
-# valhall_jm (G57 do S5). Sem isso, nosso valhall.ko genérico tem alias
-# só "arm,mali-valhall" mas o DTB do S905X5-M tem "arm,mali-valhall-csf"
-# → kernel não bind → GPU morta → tela preta.
-#
-# X4 Bifrost (S905X4) NÃO está nessa lista — Amlogic-no atende somente
-# Valhall (X5/X5M/S928X). X4 ficou na rom Elite Edition antiga.
+# (22.0-Piers_alpha3). Builda 3 .ko: bifrost (G31), valhall_csf (G310 do
+# S905X5/X5M), valhall_jm (G57 do S5). Sem bifrost na lista, X4 (S905X4
+# DT compatible "arm,mali-bifrost") fica órfão — kernel trava ao tentar
+# bindar GPU node sem driver. Mesmo Arch-R NextOS sendo target Valhall,
+# manter bifrost no kernel evita boot lock-up em X4 (sem renderizar nada,
+# mas pelo menos boot completa e mostra letras).
 #
 # Patches NextOS aplicados em pre_make_target (kernel 5.15.196 conflicts):
 #   1. -Wall -Werror → -Wall -Wno-error em Makefiles
@@ -30,7 +29,7 @@ PKG_IS_KERNEL_PKG="yes"
 PKG_TOOLCHAIN="manual"
 
 # Lista alinhada com CE-22 oficial — driver:devfreq:csf:front_end
-GPU_DRIVERS_LIST="valhall/r44p0:y:n:jm valhall/r44p0:y:y:csf"
+GPU_DRIVERS_LIST="bifrost/r44p0:n:n valhall/r44p0:y:n:jm valhall/r44p0:y:y:csf"
 
 pre_make_target() {
   # Aplicar fixes NextOS em todos os dirs r44p0 (compartilhados entre csf/jm)

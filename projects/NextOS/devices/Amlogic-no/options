@@ -168,11 +168,11 @@
     ENTWARE_SUPPORT="yes"
     ENTWARE_ARCH="aarch64-k3.10"
 
-  # CoreELEC Subdevices
-    # Amlogic-no agora só atende S905X5/X5M/S928X (Valhall).
-    # X4 (S905X4 Bifrost) ficou fora — usa rom Elite Edition antiga.
-    # Odroid_C5 = SD boot direto via aml_autoscript + cfgload.
-    SUBDEVICES="Odroid_C5"
+  # CoreELEC Subdevices — Valhall only (S905X5/X5M/S928X).
+  # Generic: TV boxes via aml_autoscript + cfgload + recovery.img.
+  #          U-boot interno da box carrega kernel via SD sem u-boot embedded.
+  # Odroid_C5: board específica via boot.ini.
+    SUBDEVICES="Odroid_C5 Generic"
 
   # TEE supported SoC — Amlogic-no atende somente Valhall
     TEE_SOC="S928X A311D2 S905X5M S905X5"
