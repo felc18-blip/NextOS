@@ -125,4 +125,43 @@ ARG=${1//[\\]/}
 # (renderer reporta "OpenGL ES version 0.0" e o emulador crasha SIGSEGV
 # pouco depois do gamepad inicializar).
 
+# Amlogic-nxtos (Mali-450 + Wayland): PPSSPP trava no shutdown ao usuario
+# clicar Exit pelo menu. main loop sai (g_QuitRequested=true) → chama
+# EmuThreadJoin() → emu thread fica em futex_wait eterno (deadlock no Mesa
+# Lima quando libera GPU context com Wayland surface). Processo nunca
+# termina, ES fica travado esperando script retornar.
+# Fix: spawn ppsspp em bg + watchdog que mede voluntary_ctxt_switches
+# agregado das threads filhas. Em gameplay/menu PPSSPP normal: ~500/s.
+# Em deadlock: TODAS threads em futex_wait, delta = 0. Se 6s consecutivos
+# sem delta + dentro do shutdown (apos PPSSPP main retornar break), SIGKILL.
+if echo "${HW_DEVICE}" | grep -q "Amlogic-nxtos"; then
+  ${EMUPERF} ppsspp --pause-menu-exit "${ARG}" &
+  PPID_=$!
+  (
+    stuck=0
+    last=-1
+    while kill -0 "${PPID_}" 2>/dev/null; do
+      sleep 1
+      [ ! -d "/proc/${PPID_}/task" ] && break
+      cur=$(awk '/voluntary_ctxt_switches/{s+=$2} END{print s+0}' /proc/"${PPID_}"/task/*/status 2>/dev/null)
+      if [ "${cur}" = "${last}" ]; then
+        stuck=$((stuck + 1))
+        if [ "${stuck}" -ge 6 ]; then
+          echo "[start_ppsspp] shutdown deadlock detectado (ctxt_switches estagnado ${stuck}s), SIGKILL pid=${PPID_}" >&2
+          kill -9 "${PPID_}" 2>/dev/null
+          break
+        fi
+      else
+        stuck=0
+      fi
+      last="${cur}"
+    done
+  ) &
+  WPID=$!
+  wait "${PPID_}"
+  RET=$?
+  kill "${WPID}" 2>/dev/null
+  exit "${RET}"
+fi
+
 ${EMUPERF} ppsspp --pause-menu-exit "${ARG}"
