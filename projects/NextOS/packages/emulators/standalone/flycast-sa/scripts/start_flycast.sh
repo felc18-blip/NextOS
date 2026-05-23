@@ -143,17 +143,20 @@ fi
   echo "VSYNC set to: ${VSYNC}"
   echo "Launching /usr/bin/flycast ${1}"
 
-# Panfrost optimization for Mali-G31
-export PAN_MESA_DEBUG=forcepack
-export MESA_NO_ERROR=1
-# Mesa GL command thread: Flycast already runs GL in a worker thread
-# (rend.ThreadedRendering=1) and is GPU-bound on RK3326. Marshalling GL
-# calls into Mesa's own thread amortises the per-call dispatch cost on a
-# single-issue Cortex-A35. See docs/mesa-glthread-matrix.md.
-export MESA_GLTHREAD=true
+# Mesa Lima (Mali-450 Utgard) on Amlogic-nxtos. NUNCA exportar PAN_MESA_DEBUG
+# nem MESA_NO_ERROR aqui — esses sao especificos do driver Panfrost (Bifrost+)
+# e quebram a inicializacao de EGL context no Lima (OpenGL ES version reporta
+# 0.0 e o emulador crasha SIGSEGV ~2s depois do "Game ID is" / SDL gamepad reset).
+# Mesa GLTHREAD nao ajuda Lima single-threaded.
 
-#Run flycast emulator
-$GPTOKEYB "flycast" -c "${CONF_DIR}/flycast.gptk" &
+# Wayland video driver (sway compositor) — sem isso SDL2 tenta KMSDRM e bate
+# DRM master com o compositor.
+export SDL_VIDEODRIVER=wayland
+
+#Run flycast emulator — spawn gptokeyb com delay de 3s. Subindo antes do flycast
+#a politica de input do SDL2 (gamecontroller hot-plug) entra em race com o joystick
+#virtual do gptokeyb e o flycast crasha no SDL init.
+( sleep 3 && $GPTOKEYB "flycast" -c "${CONF_DIR}/flycast.gptk" ) &
 ${EMUPERF} /usr/bin/flycast "${1}"
 _gptokeyb_pid="$(pidof gptokeyb 2>/dev/null)"
 [ -n "${_gptokeyb_pid}" ] && kill -9 ${_gptokeyb_pid}

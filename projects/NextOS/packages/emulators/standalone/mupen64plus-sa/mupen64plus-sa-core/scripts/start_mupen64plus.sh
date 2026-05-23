@@ -186,8 +186,8 @@ SET_PARAMS+=" --audio mupen64plus-audio-sdl${SIMPLESUFFIX}.so"
 # Echo the command line options to the log for debugging
 echo ${SET_PARAMS}
 
-# Panfrost optimization: forcepack reduces draw call overhead on Mali-G31
-export PAN_MESA_DEBUG=forcepack
-export MESA_NO_ERROR=1
+# Mesa Lima (Mali-450) only — NUNCA exportar PAN_MESA_DEBUG (driver Panfrost,
+# Bifrost+) nem MESA_NO_ERROR: quebram a init de EGL context no Lima e o
+# emulador crasha SIGSEGV pouco depois de inicializar o gamepad.
 
 ${EMUPERF} /usr/local/bin/mupen64plus${SIMPLESUFFIX} --configdir ${TMP} ${SET_PARAMS} "${TMP}/${ROM}"

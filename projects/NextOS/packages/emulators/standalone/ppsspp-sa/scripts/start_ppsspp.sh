@@ -120,14 +120,9 @@ ARG=${1//[\\]/}
   echo "VSYNC set to: ${VSYNC}"
   echo "Launching /usr/bin/ppsspp ${ARG}"
 
-# Panfrost optimization: forcepack reduces draw call overhead on Mali-G31
-export PAN_MESA_DEBUG=forcepack
-export MESA_NO_ERROR=1
-# Mesa GL command thread: PPSSPP issues many small GL calls per frame
-# (sprite/draw bursts) and the standalone build keeps render and CPU on
-# separate threads internally. Letting Mesa marshal GL on its own
-# thread cuts per-call dispatch latency on Cortex-A35. See
-# docs/mesa-glthread-matrix.md.
-export MESA_GLTHREAD=true
+# Mesa Lima (Mali-450) only — sem PAN_MESA_DEBUG/MESA_NO_ERROR/MESA_GLTHREAD.
+# PAN_* sao do driver Panfrost (Bifrost+) e quebram a init de EGL no Lima
+# (renderer reporta "OpenGL ES version 0.0" e o emulador crasha SIGSEGV
+# pouco depois do gamepad inicializar).
 
 ${EMUPERF} ppsspp --pause-menu-exit "${ARG}"

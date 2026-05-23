@@ -125,9 +125,8 @@ fi
 sed -i '/\[Cheevos\]/,/^\s*$/s/Enabled =.*/Enabled = false/' ${CONF_FILE}
 
 
-# Panfrost optimization for Mali-G31
-export PAN_MESA_DEBUG=forcepack
-export MESA_NO_ERROR=1
+# Mesa Lima (Mali-450) — sem PAN_MESA_DEBUG/MESA_NO_ERROR (driver Panfrost
+# quebra EGL init no Lima e duckstation crasha SIGSEGV no SDL boot).
 
 #Run Duckstation (NoGUI build, SDL2+EGL+Wayland)
 ${EMUPERF} duckstation-nogui -fullscreen -bigpicture -nogui -- "${1}" > /dev/null 2>&1

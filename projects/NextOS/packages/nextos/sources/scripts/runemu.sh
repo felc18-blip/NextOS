@@ -454,12 +454,10 @@ then
   set_refresh_rate "${DISPLAY_MODE}"
 fi
 
-FORCEPACK=$(get_setting "forcepack" "${PLATFORM}" "${ROMNAME##*/}")
-if [ ! -z "${FORCEPACK}" ] && [ "${FORCEPACK}" = "On" ]
-then
-    ${VERBOSE} && log $0 "Enabling panfrost forcepack"
-    export PAN_MESA_DEBUG=forcepack
-fi
+# PAN_MESA_DEBUG=forcepack desabilitado: somos Lima 100% (Mali-450 Utgard).
+# Essa flag e do driver Panfrost (Bifrost+) e em Lima ela corrompe a init de
+# EGL context (renderer reporta "OpenGL ES version 0.0" e crasha SIGSEGV).
+# Se voltar device Panfrost, restaurar com check de GRAPHIC_DRIVERS.
 
 ### Offline all but the number of threads we need for this game if configured.
 NUMTHREADS=$(get_setting "threads" "${PLATFORM}" "${ROMNAME##*/}")
