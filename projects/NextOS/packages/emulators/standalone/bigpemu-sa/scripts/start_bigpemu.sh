@@ -51,6 +51,23 @@ elif echo ${HW_DEVICE} | grep -q "Amlogic-nxtos"; then
   export SDL_VIDEODRIVER=wayland
   export SDL_AUDIODRIVER=pulseaudio
   cd /usr/share/bigpemu
+  # gptokeyb mode 1 com kill_mode trap Select+Start — bigpemu faz SDL grab
+  # exclusivo do controle, input_sense daemon nao consegue ler eventos, entao
+  # set_kill "-9 bigpemu" + killall via input_sense nao dispara. gptokeyb
+  # spawnado paralelo abre proprio handle SDL_JOYSTICK e mata bigpemu via SIGKILL
+  # quando detecta combo Select+Start (kill_mode default do modo 1).
+  if [ -x /usr/bin/gptokeyb ]; then
+    pkill -9 -f "gptokeyb.*bigpemu" 2>/dev/null
+    cat > /tmp/bigpemu-kill.gptk << 'GPTK'
+up    = up
+down  = down
+left  = left
+right = right
+GPTK
+    env -u EMUELEC /usr/bin/gptokeyb 1 bigpemu -c /tmp/bigpemu-kill.gptk &
+    trap 'pkill -9 -f "gptokeyb.*bigpemu" 2>/dev/null; true' EXIT INT TERM HUP
+    sleep 0.3
+  fi
   LD_PRELOAD=/usr/lib/gl4es/libGL.so.1 ${EMUPERF} /usr/share/bigpemu/bigpemu "${1}"
 else
   ${EMUPERF} /usr/share/bigpemu/bigpemu "${1}"
