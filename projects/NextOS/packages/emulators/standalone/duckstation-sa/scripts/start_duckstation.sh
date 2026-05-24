@@ -128,5 +128,16 @@ sed -i '/\[Cheevos\]/,/^\s*$/s/Enabled =.*/Enabled = false/' ${CONF_FILE}
 # Mesa Lima (Mali-450) — sem PAN_MESA_DEBUG/MESA_NO_ERROR (driver Panfrost
 # quebra EGL init no Lima e duckstation crasha SIGSEGV no SDL boot).
 
+# NextOS Amlogic-nxtos: SDL precisa explicitamente video=wayland +
+# audio=pulseaudio. Sem isso SDL2 tenta KMSDRM/X11/ALSA e bate com sway
+# compositor / PipeWire → SDL_Init falha silente, duckstation crasha
+# no boot sem chegar a abrir janela. Mesmo padrao yabasanshiro/mednafen/
+# bigpemu/biginstinct standalone em Mali-450.
+if echo "${HW_DEVICE}" | grep -q "Amlogic-nxtos"; then
+  export SDL_VIDEODRIVER=wayland
+  export SDL_AUDIODRIVER=pulseaudio
+fi
+
 #Run Duckstation (NoGUI build, SDL2+EGL+Wayland)
-${EMUPERF} duckstation-nogui -fullscreen -bigpicture -nogui -- "${1}" > /dev/null 2>&1
+# stderr agora vai pra exec.log (não /dev/null) pra debug de crash.
+${EMUPERF} duckstation-nogui -fullscreen -bigpicture -nogui -- "${1}" > /dev/null 2>>/var/log/exec.log
