@@ -9,7 +9,7 @@ PKG_SITE="https://mednafen.github.io/"
 #PKG_URL="${PKG_SITE}/releases/files/${PKG_NAME}-${PKG_VERSION}.tar.xz"
 # Fork with CHD additions
 PKG_URL="https://github.com/sydarn/mednafen/archive/refs/tags/1.32.1-chd.tar.gz"
-PKG_DEPENDS_TARGET="toolchain SDL2 flac zstd zlib gptokeyb"
+PKG_DEPENDS_TARGET="toolchain SDL2 flac zstd zlib nextos-hotkey"
 PKG_TOOLCHAIN="configure"
 
 case ${DEVICE} in

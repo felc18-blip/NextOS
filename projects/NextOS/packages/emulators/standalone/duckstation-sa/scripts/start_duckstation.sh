@@ -129,4 +129,6 @@ sed -i '/\[Cheevos\]/,/^\s*$/s/Enabled =.*/Enabled = false/' ${CONF_FILE}
 # quebra EGL init no Lima e duckstation crasha SIGSEGV no SDL boot).
 
 #Run Duckstation (NoGUI build, SDL2+EGL+Wayland)
-${EMUPERF} duckstation-nogui -fullscreen -bigpicture -nogui -- "${1}" > /dev/null 2>&1
+# -nogui INVÁLIDA: duckstation-nogui já é NoGUI, flag bate em arg parser e mata silente.
+# -bigpicture também não existe na NoGUI build (Qt-only). Só -fullscreen.
+${EMUPERF} duckstation-nogui -fullscreen -- "${1}" > /dev/null 2>&1

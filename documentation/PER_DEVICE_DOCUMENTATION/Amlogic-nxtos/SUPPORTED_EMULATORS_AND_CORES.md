@@ -19,7 +19,7 @@
 |Atari|Atari 5200 (atari5200)|1982|`atari5200`|.rom .xfd .atr .atx .cdm .cas .car .bin .a52 .xex .zip .7z|**retroarch:** a5200 (default)<br>**retroarch:** atari800<br>|
 |Atari|Atari 7800 (atari7800)|1986|`atari7800`|.a78 .bin .zip .7z|**retroarch:** prosystem (default)<br>|
 |Atari|Atari 800 (atari800)|1979|`atari800`|.rom .xfd .atr .atx .cdm .cas .car .bin .a52 .xex .zip .7z|**retroarch:** atari800 (default)<br>|
-|Atari|Atari Jaguar (atarijaguar)|1993|`atarijaguar`|.j64 .jag .rom .abs .cof .bin .prg|**retroarch:** virtualjaguar (default)<br>|
+|Atari|Atari Jaguar (atarijaguar)|1993|`atarijaguar`|.j64 .jag .rom .abs .cof .bin .prg|**retroarch:** virtualjaguar (default)<br>**bigpemu:** bigpemu-sa<br>|
 |Atari|Atari Lynx (atarilynx)|1989|`atarilynx`|.lnx .lyx .o .zip .7z|**retroarch:** handy (default)<br>**retroarch:** beetle_lynx<br>**mednafen:** lynx<br>|
 |Atari|Atari ST (atarist)|1985|`atarist`|.st .msa .stx .dim .ipf .m3u .zip .7z|**retroarch:** hatari (default)<br>**hatarisa:** hatarisa<br>|
 |Bandai|SuFami Turbo (sufami)|1996|`sufami`|.st .zip .7z|**retroarch:** snes9x (default)<br>|
@@ -71,7 +71,7 @@
 |Nintendo|Game Boy Color (Hacks) (gbch)|1998|`gbch`|.gb .gbc .zip .7z|**retroarch:** gambatte (default)<br>**retroarch:** sameboy<br>**retroarch:** gearboy<br>**retroarch:** tgbdual<br>**retroarch:** mgba<br>**retroarch:** vbam<br>**retroarch:** DoubleCherryGB<br>**retroarch:** skyemu<br>**mednafen:** gb<br>|
 |Nintendo|NES (Hacks) (nesh)|1985|`nesh`|.nes .unif .unf .zip .7z|**retroarch:** nestopia (default)<br>**retroarch:** fceumm<br>**retroarch:** quicknes<br>**retroarch:** mesen<br>**mednafen:** nesh<br>|
 |Nintendo|Nintendo 64 (n64)|1996|`n64`|.z64 .n64 .v64 .zip .7z|**retroarch:** mupen64plus_next (default)<br>**retroarch:** mupen64plus<br>**retroarch:** parallel_n64<br>**mupen64plus:** mupen64plus-sa<br>**daedalusx64:** daedalusx64-sa<br>|
-|Nintendo|Nintendo DS (nds)|2005|`nds`|.nds .zip .7z|**drastic:** drastic-sa (default)<br>**retroarch:** melondsds<br>**retroarch:** melonds<br>|
+|Nintendo|Nintendo DS (nds)|2005|`nds`|.nds .zip .7z|**drastic:** drastic-sa (default)<br>**melonds:** melonds-sa<br>**retroarch:** melonds<br>**retroarch:** melondsds<br>|
 |Nintendo|Nintendo DSiWare (ndsiware)|2008|`ndsiware`|.nds .zip .7z|**retroarch:** melondsds (default)<br>**melonds:** melonds-sa<br>|
 |Nintendo|Nintendo Entertainment System (nes)|1985|`nes`|.nes .unif .unf .zip .7z|**retroarch:** nestopia (default)<br>**retroarch:** fceumm<br>**retroarch:** quicknes<br>**retroarch:** mesen<br>**mednafen:** nes<br>|
 |Nintendo|Pokémon Mini (pokemini)|2001|`pokemini`|.min .zip .7z|**retroarch:** pokemini (default)<br>|
@@ -85,7 +85,8 @@
 |Panasonic|3DO (3do)|1993|`3do`|.iso .bin .chd .cue|**retroarch:** opera (default)<br>|
 |Philips|CD-i (cdi)|1991|`cdi`|.chd .cue .iso|**retroarch:** same_cdi (default)<br>|
 |Philips|VideoPac (videopac)|1978|`videopac`|.bin .zip .7z|**retroarch:** o2em (default)<br>|
-|Sammy|Atomiswave (atomiswave)|2003|`atomiswave`|.lst .bin .dat .zip .7z|**retroarch:** flycast2021 (default)<br>**retroarch:** flycast<br>**flycast:** flycast-sa<br>|
+|Rare|Killer Instinct Arcade (killerinstinct)|1994|`killerinstinct`|.chd .bin .zip|**biginstinct:** biginstinct-sa (default)<br>|
+|Sammy|Atomiswave (atomiswave)|2003|`atomiswave`|.lst .bin .dat .zip .7z|**retroarch:** flycast2021 (default)<br>**retroarch:** flycast<br>**retroarch:** morpheuscast_xtreme32<br>**flycast:** flycast-sa<br>|
 |Sega|Dreamcast (dreamcast)|1998|`dreamcast`|.cdi .gdi .chd .m3u .cue|**retroarch:** flycast2021 (default)<br>**retroarch:** flycast<br>**flycast:** flycast-sa<br>|
 |Sega|Game Gear (gamegear)|1990|`gamegear`|.bin .gg .zip .7z|**retroarch:** gearsystem (default)<br>**retroarch:** genesis_plus_gx<br>**retroarch:** picodrive<br>**retroarch:** smsplus<br>**mednafen:** gg<br>|
 |Sega|Game Gear (Hacks) (ggh)|1990|`gamegearh`|.bin .gg .zip .7z|**retroarch:** gearsystem (default)<br>**retroarch:** genesis_plus_gx<br>**retroarch:** picodrive<br>**retroarch:** smsplus<br>**mednafen:** gg<br>|

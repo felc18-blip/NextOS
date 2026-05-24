@@ -6,7 +6,7 @@ PKG_VERSION="v101"
 PKG_ARCH="any"
 PKG_LICENSE="Proprietary"
 PKG_SITE="https://www.richwhitehouse.com/ki/"
-PKG_DEPENDS_TARGET="toolchain SDL2 gptokeyb"
+PKG_DEPENDS_TARGET="toolchain SDL2 nextos-hotkey"
 PKG_LONGDESC="BigInstinct - Killer Instinct 1/2 arcade emulator (Rich Whitehouse)."
 PKG_TOOLCHAIN="manual"
 
