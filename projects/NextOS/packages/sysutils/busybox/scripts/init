@@ -103,6 +103,10 @@ error() {
   # Send debug_shell output to stderr, in case caller is redirecting/consuming stdout
   # Return exitcode=1 so that called may detect when an error has occurred
   echo "*** Error in ${BOOT_STEP}: $1: $2 ***" >&2
+  # NextOS port-s7d: log p/ cartao (debug sem display)
+  mount -o remount,rw /flash 2>/dev/null
+  { echo "=== ERRO initramfs: step=${BOOT_STEP} acao=$1 msg=$2 ==="; dmesg; } > /flash/boot-error.log 2>/dev/null
+  sync 2>/dev/null
   debug_shell >&2
   return 1
 }
@@ -1461,6 +1465,11 @@ else
 fi
 
 # switch to new sysroot and start real init
+# NextOS port-s7d: log de boot OK p/ cartao (confirma chegada ao switch_root)
+mount -o remount,rw /flash 2>/dev/null
+{ echo "=== boot initramfs OK, switch_root ==="; dmesg; } > /flash/boot-ok.log 2>/dev/null
+mount -o remount,ro /flash 2>/dev/null
+sync 2>/dev/null
 exec /usr/bin/busybox switch_root /sysroot /usr/lib/systemd/systemd ${INIT_ARGS} ${INIT_UNIT}
 
 error "switch_root" "Error in initramfs. Could not switch to new root"

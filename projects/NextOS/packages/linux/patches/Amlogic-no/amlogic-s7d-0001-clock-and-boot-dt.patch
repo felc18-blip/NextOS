@@ -1,17 +1,10 @@
-NextOS port-s7d: clock controller s7d (S905X5M) + DT de boot + GPU panthor.
+NextOS port-s7d: clock controller s7d (S905X5M) + DT de boot + GPU panthor + SD/eMMC.
 
-- clk-regmap.{c,h}: versao vendor (CoreELEC) + clk_regmap_init portado do mainline.
-- clk-pll.{c,h}: versao vendor com secure-PLL + meson_clk_pll_v4_ops (s7d usa).
-- Makefile: s7d.o + CFLAGS_clk-pll.o -DCONFIG_AMLOGIC_MODIFY (libera v4_ops; no
-  arm64 os sub-blocos CONFIG_ARM ficam off).
-- Kconfig: COMMON_CLK_S7D.
-- s7d.c + dt-bindings/clock/s7d-clkc.h: NOVOS (driver + binding).
-- amlogic-s7d.dtsi: nodes de boot (SCMI+clkc+eMMC+eth+simplefb) + GPU valhall-csf (panthor).
-
-X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7).
+clk-regmap/clk-pll vendor + fixes; Makefile/Kconfig; s7d.c + s7d-clkc.h + clk-secure.h (novos);
+amlogic-s7d.dtsi: SCMI+clkc+eMMC+sd_emmc_b(cartao SD)+ethernet+simplefb+GPU valhall-csf.
 
 --- a/drivers/clk/meson/clk-regmap.c	2026-05-17 17:59:58.000000000 -0300
-+++ b/drivers/clk/meson/clk-regmap.c	2026-05-27 13:19:26.197943778 -0300
++++ b/drivers/clk/meson/clk-regmap.c	2026-05-27 14:27:32.489077794 -0300
 @@ -4,51 +4,41 @@
   * Author: Jerome Brunet <jbrunet@baylibre.com>
   */
@@ -309,7 +302,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 -MODULE_IMPORT_NS("CLK_MESON");
 +MODULE_LICENSE("GPL v2");
 --- a/drivers/clk/meson/clk-regmap.h	2026-05-17 17:59:58.000000000 -0300
-+++ b/drivers/clk/meson/clk-regmap.h	2026-05-27 13:17:49.012815929 -0300
++++ b/drivers/clk/meson/clk-regmap.h	2026-05-27 14:27:32.489252616 -0300
 @@ -7,9 +7,12 @@
  #ifndef __CLK_REGMAP_H
  #define __CLK_REGMAP_H
@@ -419,7 +412,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +
  #endif /* __CLK_REGMAP_H */
 --- a/drivers/clk/meson/clk-pll.c	2026-05-17 17:59:58.000000000 -0300
-+++ b/drivers/clk/meson/clk-pll.c	2026-05-27 13:19:26.188358381 -0300
++++ b/drivers/clk/meson/clk-pll.c	2026-05-27 14:27:32.489393526 -0300
 @@ -32,10 +32,22 @@
  #include <linux/io.h>
  #include <linux/math64.h>
@@ -2020,7 +2013,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 -MODULE_IMPORT_NS("CLK_MESON");
 +MODULE_LICENSE("GPL v2");
 --- a/drivers/clk/meson/clk-pll.h	2026-05-17 17:59:58.000000000 -0300
-+++ b/drivers/clk/meson/clk-pll.h	2026-05-27 12:40:29.880205710 -0300
++++ b/drivers/clk/meson/clk-pll.h	2026-05-27 14:27:32.489866412 -0300
 @@ -11,24 +11,63 @@
  #include <linux/regmap.h>
  #include "parm.h"
@@ -2130,7 +2123,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
  
  #endif /* __MESON_CLK_PLL_H */
 --- a/drivers/clk/meson/Makefile	2026-05-17 17:59:58.000000000 -0300
-+++ b/drivers/clk/meson/Makefile	2026-05-27 13:25:52.321415409 -0300
++++ b/drivers/clk/meson/Makefile	2026-05-27 14:27:32.489945520 -0300
 @@ -28,3 +28,5 @@
  obj-$(CONFIG_COMMON_CLK_S4_PERIPHERALS) += s4-peripherals.o
  obj-$(CONFIG_COMMON_CLK_T7_PLL) += t7-pll.o
@@ -2138,7 +2131,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +obj-$(CONFIG_COMMON_CLK_S7D) += s7d.o
 +CFLAGS_clk-pll.o += -DCONFIG_AMLOGIC_MODIFY
 --- a/drivers/clk/meson/Kconfig	2026-05-17 17:59:58.000000000 -0300
-+++ b/drivers/clk/meson/Kconfig	2026-05-27 13:17:49.016222955 -0300
++++ b/drivers/clk/meson/Kconfig	2026-05-27 14:27:32.490032139 -0300
 @@ -230,3 +230,16 @@
  	  device, AKA T7. Peripherals are required by most peripheral to operate.
  	  Say Y if you want T7 peripherals clock controller to work.
@@ -2157,7 +2150,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +	help
 +	  NextOS port: clock controller for Amlogic S905X5M (s7d).
 --- a/arch/arm64/boot/dts/amlogic/amlogic-s7d.dtsi	2026-05-17 17:59:58.000000000 -0300
-+++ b/arch/arm64/boot/dts/amlogic/amlogic-s7d.dtsi	2026-05-27 13:28:39.680392835 -0300
++++ b/arch/arm64/boot/dts/amlogic/amlogic-s7d.dtsi	2026-05-27 15:00:16.758671391 -0300
 @@ -8,6 +8,7 @@
  #include <dt-bindings/gpio/gpio.h>
  #include <dt-bindings/pinctrl/amlogic,pinctrl.h>
@@ -2166,7 +2159,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
  
  / {
  	cpus {
-@@ -215,3 +216,99 @@
+@@ -215,3 +216,113 @@
  		};
  	};
  };
@@ -2225,6 +2218,20 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +			      "sys_clk", "axi_clk", "fixed_pll", "gp1_pll";
 +	};
 +
++	/* cartao SD (boot/rootfs do X5M) — sd_emmc_b @ fe08a000 */
++	sd_b: mmc@8a000 {
++		compatible = "amlogic,meson-axg-mmc";
++		reg = <0x0 0x8a000 0x0 0x800>;
++		interrupts = <GIC_SPI 177 IRQ_TYPE_EDGE_RISING>;
++		clocks = <&clkc CLKID_SYS_SD_EMMC_B>, <&clkc CLKID_FCLK_DIV2>, <&clkc CLKID_FCLK_DIV5>;
++		clock-names = "core", "clkin0", "clkin1";
++		bus-width = <4>;
++		cap-sd-highspeed;
++		max-frequency = <50000000>;
++		broken-cd;
++		disable-wp;
++	};
++
 +	mmc@8c000 {
 +		compatible = "amlogic,meson-axg-mmc";
 +		reg = <0x0 0x8c000 0x0 0x1000>;
@@ -2267,7 +2274,7 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +	};
 +};
 --- /dev/null	2026-05-19 11:36:16.731664697 -0300
-+++ b/drivers/clk/meson/s7d.c	2026-05-27 12:20:11.952963323 -0300
++++ b/drivers/clk/meson/s7d.c	2026-05-27 14:27:32.490686066 -0300
 @@ -0,0 +1,2154 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
@@ -4424,7 +4431,56 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +
 +MODULE_LICENSE("GPL v2");
 --- /dev/null	2026-05-19 11:36:16.731664697 -0300
-+++ b/include/dt-bindings/clock/s7d-clkc.h	2026-05-27 12:18:40.454221355 -0300
++++ b/drivers/clk/meson/clk-secure.h	2026-05-27 14:27:32.491044353 -0300
+@@ -0,0 +1,46 @@
++/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
++/*
++ *
++ * Copyright (c) 2018 Amlogic, inc.
++ *
++ */
++
++#ifndef __CLK_SECURE_H
++#define __CLK_SECURE_H
++
++/*for sc2 secure*/
++#define CLK_SECURE_RW		0x8200009A
++#define CPUCLK_SECURE_RW	0x8200009B
++
++#define CLK_SMC_READ 0
++#define CLK_SMC_WRITE 1
++
++#define SYS_PLL_STEP0 0
++#define SYS_PLL_STEP1 1
++#define SYS_PLL_DISABLE 2
++#define GP1_PLL_STEP0 3
++#define GP1_PLL_STEP1 4
++#define GP1_PLL_DISABLE 5
++#define CLK_REG_RW 6
++
++#define CLK_CPU_REG_RW 0
++#define CLK_DSU_REG_RW 1
++#define CPU_CLK_SET_PARENT 2
++#define DSU_CLK_SET_PARENT 3
++#define CPU_CLK_SET_RATE 4
++#define DSU_CLK_SET_RATE 5
++#define CLK_CPU_DSU_REG_RW 6
++#define SET_CPU0_MUX_PARENT 7
++#define SET_CPU123_DSU_MUX_PARENT 8
++#define SET_DSU_PRE_MUX_PARENT 9
++#define DSU_DIVIDER_SET_RATE 10
++#define CPU_DIVIDER_SET_RATE 11
++
++extern const struct clk_ops meson_secure_clk_pll_ops; /* for sc2 secure pll*/
++extern const struct clk_ops clk_regmap_secure_divider_ops;
++extern const struct clk_ops clk_regmap_secure_divider_ro_ops;
++extern const struct clk_ops clk_regmap_secure_mux_ops;
++extern const struct clk_ops clk_regmap_secure_mux_ro_ops;
++extern const struct clk_ops meson_secure_clk_cpu_dyndiv_ops;
++
++#endif /* __CLK_SECURE_H */
+--- /dev/null	2026-05-19 11:36:16.731664697 -0300
++++ b/include/dt-bindings/clock/s7d-clkc.h	2026-05-27 14:27:32.490955801 -0300
 @@ -0,0 +1,271 @@
 +/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
 +/*
@@ -4697,52 +4753,3 @@ X5M-only: o config do device desabilita os outros SoC meson (GXBB/AXG/G12A/S4/T7
 +#define NR_CLKS				(CLKID_BASIC_BASE + 236)
 +
 +#endif /* __S7D_CLKC_H */
---- /dev/null	2026-05-19 11:36:16.731664697 -0300
-+++ b/drivers/clk/meson/clk-secure.h	2026-05-27 12:29:46.505645869 -0300
-@@ -0,0 +1,46 @@
-+/* SPDX-License-Identifier: (GPL-2.0+ OR MIT) */
-+/*
-+ *
-+ * Copyright (c) 2018 Amlogic, inc.
-+ *
-+ */
-+
-+#ifndef __CLK_SECURE_H
-+#define __CLK_SECURE_H
-+
-+/*for sc2 secure*/
-+#define CLK_SECURE_RW		0x8200009A
-+#define CPUCLK_SECURE_RW	0x8200009B
-+
-+#define CLK_SMC_READ 0
-+#define CLK_SMC_WRITE 1
-+
-+#define SYS_PLL_STEP0 0
-+#define SYS_PLL_STEP1 1
-+#define SYS_PLL_DISABLE 2
-+#define GP1_PLL_STEP0 3
-+#define GP1_PLL_STEP1 4
-+#define GP1_PLL_DISABLE 5
-+#define CLK_REG_RW 6
-+
-+#define CLK_CPU_REG_RW 0
-+#define CLK_DSU_REG_RW 1
-+#define CPU_CLK_SET_PARENT 2
-+#define DSU_CLK_SET_PARENT 3
-+#define CPU_CLK_SET_RATE 4
-+#define DSU_CLK_SET_RATE 5
-+#define CLK_CPU_DSU_REG_RW 6
-+#define SET_CPU0_MUX_PARENT 7
-+#define SET_CPU123_DSU_MUX_PARENT 8
-+#define SET_DSU_PRE_MUX_PARENT 9
-+#define DSU_DIVIDER_SET_RATE 10
-+#define CPU_DIVIDER_SET_RATE 11
-+
-+extern const struct clk_ops meson_secure_clk_pll_ops; /* for sc2 secure pll*/
-+extern const struct clk_ops clk_regmap_secure_divider_ops;
-+extern const struct clk_ops clk_regmap_secure_divider_ro_ops;
-+extern const struct clk_ops clk_regmap_secure_mux_ops;
-+extern const struct clk_ops clk_regmap_secure_mux_ro_ops;
-+extern const struct clk_ops meson_secure_clk_cpu_dyndiv_ops;
-+
-+#endif /* __CLK_SECURE_H */
