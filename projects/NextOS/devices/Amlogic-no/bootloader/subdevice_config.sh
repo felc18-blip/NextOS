@@ -85,6 +85,6 @@ case ${1} in
     # esse arquivo, u-boot trava antes de carregar o kernel. EmuELEC kag0tt
     # 4.8 X5M ships com s7d_s905x5m_4g_1gbit.dtb pré-copiado como dtb.img.
     # Usamos o mesmo DTB como default Generic (S905X5-M 4GB 1Gbit ethernet).
-    DEVICE_DTB="device_trees/s7d_s905x5m_4g_1gbit.dtb"
+    DEVICE_DTB="amlogic-s7d-s905x5m-bm202.dtb"   # port-s7d: dtb MAINLINE (vendor device_trees nao existe no build mainline)
   ;;
 esac
