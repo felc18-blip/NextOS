@@ -9,11 +9,14 @@ PKG_ARCH="aarch64"
 PKG_LICENSE="nonfree"
 PKG_SITE="http://openlinux.amlogic.com:8000/download/ARM/filesystem/"
 PKG_URL=""
-PKG_DEPENDS_TARGET="lib32-toolchain opengl-meson lib32-libdrm"
+# NextOS Arch-R: o lib32-toolchain do EmuELEC nao existe aqui (32-bit vem do
+# build paralelo .arm). Como este pacote so COPIA blobs pre-compilados de
+# src/eabihf/ pra /usr/lib32 (nao compila nada), basta o toolchain normal +
+# opengl-meson (pros includes/pkgconfig). Sem PKG_BUILD_FLAGS=lib32.
+PKG_DEPENDS_TARGET="toolchain opengl-meson"
 PKG_LONGDESC="OpenGL ES pre-compiled libraries for Mali GPUs found in Amlogic Meson SoCs."
 PKG_PATCH_DIRS+=" $(get_pkg_directory opengl-meson)/patches"
 PKG_TOOLCHAIN="manual"
-PKG_BUILD_FLAGS="lib32"
 
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib32

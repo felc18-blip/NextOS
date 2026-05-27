@@ -17,6 +17,71 @@ PKG_TOOLCHAIN="manual"
 # inclui wayland 1.24.0 por causa disso.
 
 makeinstall_target() {
+  # ============================================================================
+  # NextOS 2026-05-27 (Amlogic-no, build .arm 32-bit): o opengl-meson upstream
+  # so tem blobs arm64. Rodando no build .arm (TARGET_ARCH=arm) ele instalava
+  # blob 64-bit no sistema/sysroot 32-bit -> SDL2 .arm nao linkava EGL/gbm ->
+  # kmsdrm DESABILITADO, e o rsync do lib32 levava Mali 64-bit + symlinks
+  # ABSOLUTOS (/usr/lib/libMali.so) pro /usr/lib32 (quebrava todo GL 32-bit:
+  # retroarch32 "wrong ELF class", gmloader/Sonic "Video subsystem not init").
+  # Fix: instalar o blob Mali eabihf (32-bit, bundlado de sources/eabihf,
+  # extraido do CoreELEC 8bfb8ebe) com symlinks RELATIVOS (sobrevivem ao rsync)
+  # + blob REAL no sysroot .arm (pro SDL2 linkar EGL/GLES 32-bit e habilitar
+  # kmsdrm). Path arm64 (64-bit) abaixo fica intocado.
+  if [ "${TARGET_ARCH}" = "arm" ]; then
+    local EABIHF="${PKG_DIR}/sources/eabihf"
+    mkdir -p ${INSTALL}/usr/lib ${SYSROOT_PREFIX}/usr/lib ${SYSROOT_PREFIX}/usr/lib/pkgconfig
+
+    # --- INSTALL (vira /usr/lib32 via rsync do pacote lib32) ---
+    cp -p ${EABIHF}/valhall/r41p0/fbdev/libMali.so ${INSTALL}/usr/lib/libMali.valhall.so
+    cp -p ${EABIHF}/gondul/r12p0/fbdev/libMali.so  ${INSTALL}/usr/lib/libMali.gondul.so
+    cp -p ${EABIHF}/dvalin/r12p0/fbdev/libMali.so  ${INSTALL}/usr/lib/libMali.dvalin.so
+    # libMali.so -> overlay runtime do lib32 (libmali-overlay-setup seta /var/lib32)
+    ln -sf /var/lib32/libMali.so ${INSTALL}/usr/lib/libMali.so
+    # symlinks RELATIVOS (sobrevivem ao rsync pra /usr/lib32)
+    for n in libmali.so libmali.so.0 libmali.so.1 \
+             libEGL.so libEGL.so.1 libEGL.so.1.0.0 \
+             libGLES_CM.so.1 libGLESv1_CM.so libGLESv1_CM.so.1 libGLESv1_CM.so.1.0.1 libGLESv1_CM.so.1.1 \
+             libGLESv2.so libGLESv2.so.2 libGLESv2.so.2.0 libGLESv2.so.2.0.0 \
+             libGLESv3.so libGLESv3.so.3 libGLESv3.so.3.0 libGLESv3.so.3.0.0; do
+      ln -sf libMali.so ${INSTALL}/usr/lib/${n}
+    done
+    # libgbm stub 32-bit (TARGET_PREFIX gcc = arm neste build)
+    ${TARGET_PREFIX}gcc -shared -fPIC -O2 -Wl,-soname,libgbm.so.1 \
+        -o ${INSTALL}/usr/lib/libgbm.so.1 ${PKG_DIR}/sources/libgbm-stub/libgbm.c -ldl
+    ln -sf libgbm.so.1 ${INSTALL}/usr/lib/libgbm.so
+
+    # --- SYSROOT .arm: blob 32-bit REAL pro SDL2 linkar EGL/GLES e habilitar kmsdrm ---
+    cp -p ${EABIHF}/valhall/r41p0/fbdev/libMali.so ${SYSROOT_PREFIX}/usr/lib/libMali.so
+    for n in libmali.so libmali.so.0 libEGL.so libEGL.so.1 libEGL.so.1.0.0 \
+             libGLES_CM.so.1 libGLESv1_CM.so libGLESv1_CM.so.1 \
+             libGLESv2.so libGLESv2.so.2 libGLESv2.so.2.0 libGLESv2.so.2.0.0 \
+             libGLESv3.so libGLESv3.so.3; do
+      ln -sf libMali.so ${SYSROOT_PREFIX}/usr/lib/${n}
+    done
+    ${TARGET_PREFIX}gcc -shared -fPIC -O2 -Wl,-soname,libgbm.so.1 \
+        -o ${SYSROOT_PREFIX}/usr/lib/libgbm.so.1 ${PKG_DIR}/sources/libgbm-stub/libgbm.c -ldl
+    ln -sf libgbm.so.1 ${SYSROOT_PREFIX}/usr/lib/libgbm.so
+
+    # headers + pkgconfig (iguais ao path 64-bit)
+    cp -rf ${PKG_BUILD}/include/* ${SYSROOT_PREFIX}/usr/include 2>/dev/null || true
+    cp -rf ${PKG_BUILD}/lib/pkgconfig/* ${SYSROOT_PREFIX}/usr/lib/pkgconfig/ 2>/dev/null || true
+    sed -i 's|^Version: 0.99$|Version: 1.5|' ${SYSROOT_PREFIX}/usr/lib/pkgconfig/egl.pc ${SYSROOT_PREFIX}/usr/lib/pkgconfig/glesv2.pc 2>/dev/null || true
+    sed -i 's|^Version: 17\.2\.0$|Version: 25.0.0|' ${SYSROOT_PREFIX}/usr/lib/pkgconfig/gbm.pc 2>/dev/null || true
+    mkdir -p ${SYSROOT_PREFIX}/usr/include/EGL ${SYSROOT_PREFIX}/usr/include/GLES2 ${SYSROOT_PREFIX}/usr/include/GLES3 ${SYSROOT_PREFIX}/usr/include/KHR
+    cp -pr include/EGL ${SYSROOT_PREFIX}/usr/include 2>/dev/null || true
+    cp -pr include/EGL_platform/platform_fbdev/* ${SYSROOT_PREFIX}/usr/include/EGL 2>/dev/null || true
+    [ -d include/EGL_platform/platform_gbm/gbm ] && cp -pr include/EGL_platform/platform_gbm/gbm/* ${SYSROOT_PREFIX}/usr/include/ 2>/dev/null || true
+    cp -pr include/GLES2 ${SYSROOT_PREFIX}/usr/include 2>/dev/null || true
+    cp -pr include/GLES3 ${SYSROOT_PREFIX}/usr/include 2>/dev/null || true
+    cp -pr include/KHR ${SYSROOT_PREFIX}/usr/include 2>/dev/null || true
+    rm -rf ${SYSROOT_PREFIX}/usr/include/EGL_platform 2>/dev/null || true
+
+    mkdir -p ${INSTALL}/usr/sbin
+    cp ${PKG_DIR}/scripts/libmali-overlay-setup ${INSTALL}/usr/sbin 2>/dev/null || true
+    return 0
+  fi
+
   mkdir -p ${INSTALL}/usr/lib
   # NextOS 2026-05-09: bumped pra r44p0 alinhado com CE-22, mantém custom
   # NextOS dvalin.g12a (S905Y2 Radxa Zero) e lib32 support pra ports 32-bit.

@@ -75,7 +75,43 @@ fi
 
 #Start PortMaster
 cd /storage/roms/ports/PortMaster
-./PortMaster.sh 2>/dev/null
+
+# Amlogic-no (S905X5/X5M, blob Mali Valhall + KMSDRM): o pugwash (GUI SDL2 do
+# PortMaster) deadloca no exit (futex_wait/pthread_join ao liberar GPU/audio),
+# mesmo padrao do ppsspp/hatari. PortMaster.sh fica esperando o pugwash que
+# nunca morre -> nunca chega no "systemctl restart essway" abaixo -> tela
+# congela e nao volta pro ES. Watchdog: roda em bg e mede o
+# voluntary_ctxt_switches agregado da arvore (PortMaster.sh + pugwash + tee).
+# GUI viva = render loop gera ctxt switches; deadlock = todas threads em
+# futex, delta 0. 6s estagnado => SIGKILL a arvore e o script segue pro restart.
+if echo "${HW_DEVICE}" | grep -qE "Amlogic-no"; then
+  ./PortMaster.sh 2>/dev/null &
+  PMPID=$!
+  (
+    _tree() { local p="$1"; echo "$p"; for c in $(pgrep -P "$p" 2>/dev/null); do _tree "$c"; done; }
+    stuck=0; last=-1
+    while kill -0 "${PMPID}" 2>/dev/null; do
+      sleep 1
+      cur=$(for p in $(_tree "${PMPID}"); do
+              awk '/voluntary_ctxt_switches/{s+=$2} END{print s+0}' /proc/"$p"/task/*/status 2>/dev/null
+            done | awk '{t+=$1} END{print t+0}')
+      if [ "${cur}" = "${last}" ]; then
+        stuck=$((stuck + 1))
+        if [ "${stuck}" -ge 6 ]; then
+          echo "[start_portmaster] exit deadlock (ctxt estagnado ${stuck}s), SIGKILL arvore pid=${PMPID}" >&2
+          for p in $(_tree "${PMPID}"); do kill -9 "$p" 2>/dev/null; done
+          break
+        fi
+      else
+        stuck=0
+      fi
+      last="${cur}"
+    done
+  ) &
+  wait "${PMPID}" 2>/dev/null
+else
+  ./PortMaster.sh 2>/dev/null
+fi
 
 # Restart ES so it reloads gamelist.xml with the <image>/<desc> entries that
 # PortMaster's PlatformNextOS.gamelist_add() just wrote. Without this, ES

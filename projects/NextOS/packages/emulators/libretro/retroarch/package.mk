@@ -56,14 +56,19 @@ case ${DEVICE} in
 esac
 
 if [ "${DISPLAYSERVER}" = "wl" ]; then
-  PKG_DEPENDS_TARGET+=" wayland wayland-protocols wayland:host"
-  PKG_CONFIGURE_OPTS_TARGET+=" --enable-wayland"
   case ${ARCH} in
     arm)
-      true
+      # NextOS 2026-05-27 (Amlogic-no build .arm 32-bit): o blob Mali Valhall
+      # 32-bit so existe em FBDEV (sem gbm/wayland), e nao ha wayland-egl 32-bit
+      # no sysroot. retroarch32 usa o contexto mali_fbdev (EGL fbdev -> /dev/fb0).
+      # Desabilita wayland E kms (kms/gbm exige simbolos gbm_* que o blob fbdev
+      # nao tem -> "undefined reference to gbm_surface_has_free_buffers" no link)
+      # e HABILITA mali_fbdev (contexto EGL fbdev -> /dev/fb0, default HAVE=no).
+      PKG_CONFIGURE_OPTS_TARGET+=" --disable-wayland --disable-kms --enable-mali_fbdev"
       ;;
     *)
-      PKG_DEPENDS_TARGET+=" ${WINDOWMANAGER}"
+      PKG_DEPENDS_TARGET+=" wayland wayland-protocols wayland:host ${WINDOWMANAGER}"
+      PKG_CONFIGURE_OPTS_TARGET+=" --enable-wayland"
       ;;
   esac
 else
