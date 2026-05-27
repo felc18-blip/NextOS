@@ -133,3 +133,44 @@ Branch port-mainline-s7d-panthor (pushed). Base intacta: main + tags.
 - Mainline kernel workspace: `build.NextOS-Amlogic-nxtos.aarch64/build/linux-7.1-rc4/`
 - Vendor display (milestone 2): `common_drivers-*/drivers/drm/meson_*.c`
 - Device X5M SSH root@192.168.31.103 senha nextos. **Precisa UART/serial pro bring-up.**
+
+---
+
+## ESTADO REAL + ARQUITETURA CORRIGIDA (2026-05-27)
+
+### Arquitetura (decisão Felipe: X5M-only no Amlogic-no, desativar outros, nxtos em paz)
+- O porte NÃO mora no build tree do nxtos. Mora como **patches do device Amlogic-no**
+  (`devices/Amlogic-no/patches/linux/`) + **build próprio** mainline. nxtos (source/config)
+  fica intocado. Amlogic-no vira **X5M-only**.
+- Validação foi feita no build dir do nxtos (descartável, gitignored) — NÃO commitado.
+  Os artefatos do porte estão salvos em `port-mainline-s7d/` (clk/, dt/, fragment).
+
+### Gap técnico do clock (5.15 vendor → 7.1 mainline) — REAL, solucionável
+- s7d.c (vendor CoreELEC) usa o framework clk **vendor**: inclui clk-cpu-dyndiv.h +
+  clk-dualdiv.h e provider onecell (of_clk_hw_onecell_get). NÃO usa meson-clkc-utils
+  → o `select COMMON_CLK_MESON_CLKC_UTILS` no Kconfig do s7d pode CAIR.
+- Conflito: troquei clk-regmap/clk-pll por vendor, mas os helpers cpu-dyndiv/dualdiv
+  do tree são **mainline** e esperam `clk_regmap_init` (que o vendor regmap.h não tem)
+  → erro `clk_regmap_init undeclared`. Macros MESON_PCLK duplicam (vendor regmap.h vs
+  mainline meson-clkc-utils.h) → warnings.
+- Vendor cpu-dyndiv/dualdiv usam `.round_rate` (removido no clk_ops 7.1 → `.determine_rate`).
+- DUAS saídas: (A) all-vendor: copiar cpu-dyndiv/dualdiv/mpll/phase vendor + adaptar
+  cada `.round_rate`→`.determine_rate` + desabilitar TODOS os outros SoC meson (GXBB/
+  AXG/G12A/S4/AO_CLKC) no config do Amlogic-no. (B) all-mainline: manter helpers 7.1 +
+  portar s7d.c pra clk-regmap mainline + add secure-PLL (smc_id/secid) como extensão.
+  (A) é mais direto p/ X5M-only; (B) é mais limpo. Recomendo (A) no build Amlogic-no.
+
+### ROADMAP HONESTO até imagem Mesa usável (multi-etapa, não é uma noite)
+1. **[em curso] Kernel boota X5M** — clock (gap acima) + SCMI(nativo) + eMMC/eth + DT.
+   Marco: boot-to-SSH, console via simplefb na TV. Valida toda a fundação.
+2. **Display KMS — meson-drm pro s7d** ("o monstro"). SEM isto, Mesa não mostra NADA na
+   tela (compositor sway não sobe). Maior incógnita: mainline não tem display s7d; vendor
+   tem (porte grande: vpu/vpp/encp/hdmitx do s7d). É o gargalo da imagem GUI.
+3. **GPU panthor + DT node GPU** — kmsdrm + Mesa panfrost (GRAPHIC_DRIVERS="panfrost meson"
+   já confirmado no config/graphic: GALLIUM+Vulkan panfrost). Symlinks libGL→Mesa.
+4. **Imagem completa** — device Amlogic-no mainline+panfrost (template = nxtos+lima trocando
+   lima→panfrost) → build → flash → GUI/ES.
+
+CONCLUSÃO HONESTA: a imagem Mesa COMPLETA só faz sentido depois do passo 2 (display). Hoje
+uma imagem "completa" subiria no máximo console/SSH (tela sem GUI). Marco realista agora =
+validar BOOT do kernel no X5M (passo 1).
