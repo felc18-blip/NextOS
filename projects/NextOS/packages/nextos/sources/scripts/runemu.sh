@@ -491,8 +491,45 @@ if [[ "${ROMNAME}" == *".sh" ]] && [ ! "${PLATFORM}" = "ports" ] && [ ! "${PLATF
         ret_error=$?
 else
         ${VERBOSE} && log $0 "Executing $(eval echo ${RUNTHIS})"
-        eval ${RUNTHIS} &>>${OUTPUT_LOG}
-        ret_error=$?
+        if echo "${HW_DEVICE}" | grep -qE "Amlogic-no"; then
+                # Amlogic-no (blob Mali Valhall + KMSDRM): muitos emuladores standalone
+                # deadlocam no EXIT liberando o contexto GL (threads em futex_wait,
+                # voluntary_ctxt_switches=0) -> processo nunca morre -> runemu fica
+                # esperando -> tela congela e o ES nao volta. Watchdog universal: roda
+                # o emu em bg, anda a arvore de processos e mede o vcs agregado; se ficar
+                # parado (delta 0) por 6s = deadlock (em uso normal sempre ha context
+                # switch do render/audio/input) -> SIGKILL a arvore e segue pro restart.
+                eval ${RUNTHIS} &>>${OUTPUT_LOG} &
+                __rt_pid=$!
+                (
+                        __tree() { local p="$1"; echo "$p"; for c in $(pgrep -P "$p" 2>/dev/null); do __tree "$c"; done; }
+                        stuck=0; last=-1
+                        while kill -0 "${__rt_pid}" 2>/dev/null; do
+                                sleep 1
+                                cur=$(for p in $(__tree "${__rt_pid}"); do
+                                        awk '/^voluntary_ctxt_switches/{s+=$2} END{print s+0}' /proc/"$p"/task/*/status 2>/dev/null
+                                done | awk '{t+=$1} END{print t+0}')
+                                if [ "${cur}" = "${last}" ]; then
+                                        stuck=$((stuck + 1))
+                                        if [ "${stuck}" -ge 6 ]; then
+                                                log $0 "[watchdog] exit deadlock (vcs estagnado ${stuck}s), SIGKILL arvore pid=${__rt_pid}"
+                                                for p in $(__tree "${__rt_pid}"); do kill -9 "$p" 2>/dev/null; done
+                                                break
+                                        fi
+                                else
+                                        stuck=0
+                                fi
+                                last="${cur}"
+                        done
+                ) &
+                __wd_pid=$!
+                wait "${__rt_pid}"
+                ret_error=$?
+                kill "${__wd_pid}" 2>/dev/null
+        else
+                eval ${RUNTHIS} &>>${OUTPUT_LOG}
+                ret_error=$?
+        fi
 fi
 
 ### Switch back to performance mode to clean up
