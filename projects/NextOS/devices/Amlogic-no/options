@@ -80,12 +80,12 @@
   # symlinks libEGL/libGLES* → libMali.so (Valhall). X4 S905X4 Bifrost
   # ESTÁ FORA DESSA ROM (continua em Elite Edition antiga); Amlogic-no
   # atende somente S905X5/X5M/S928X (Valhall blob).
-    OPENGLES="opengl-meson"
+    OPENGLES="mesa"
 
   # Mali family marker — Valhall (g310 / g57). Usado por nextos/package.mk
   # e compat/lib32 pra skipear o Mesa-only EGL symlink redirect que
   # se aplica em Amlogic-nxtos (Lima/Mesa). opengl-meson provê libMali.so.
-    MALI_FAMILY="valhall"
+    MALI_FAMILY=""   # port-s7d: Mesa/panfrost (era valhall/blob)
 
   # include uvesafb support (yes / no)
     UVESAFB_SUPPORT="no"
@@ -97,7 +97,7 @@
     WINDOWMANAGER="swaywm-env"
 
   # Xorg Graphic drivers to use
-    GRAPHIC_DRIVERS="mali"
+    GRAPHIC_DRIVERS="panfrost"
 
   # Use a vendor specific KODI repo
     KODI_VENDOR="amlogic-5.15"
@@ -124,10 +124,7 @@
   #   RTW88:         sed `sta->X` -> `sta->deflink.X` (9 membros) — V6
   # gpu-aml = mali_kbase vendor (Valhall jm + csf builds) pra S905X5/X5M/S928X.
   # Bifrost (X4) NÃO está na lista — Amlogic-no atende somente Valhall.
-  ADDITIONAL_DRIVERS="gpu-aml openvfd-driver media_modules-aml wifi_dummy-aml \
-                      ap6xxx-aml aic8800-sdio RTW88 RTL8189FS \
-                      RTL8852BE-aml RTL8723DS-aml RTL8851BU RTL8852BS-aml \
-                      mt76 mt7668-wifi-bt w1-aml w2-aml aml_bt uwe5631-aml"
+  ADDITIONAL_DRIVERS=""   # port-s7d: limpo (gpu-aml/media-aml/wifi-aml sao 5.15; mainline usa panthor+in-tree)
 
   # additional Firmware to use (dvb-firmware, misc-firmware, wlan-firmware)
   # Space separated list is supported,
