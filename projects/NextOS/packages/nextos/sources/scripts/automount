@@ -168,6 +168,17 @@ function load_modules() {
 
 function mount_games() {
       MOUNT_PATH="/storage/games-external"
+
+      ### NextOS Amlogic: nao montar a particao "factory"/"KEYBOX PART" do
+      ### device (vfat ~8MB) como games externos. Ela e detectada como FS
+      ### montavel e acabava com bind-mount sobre /storage/roms, escondendo
+      ### a particao real de 113GB ("No space left" em PortMaster/ROMs).
+      BLKEXPORT=$(blkid -o export ${1} 2>/dev/null)
+      if echo "${BLKEXPORT}" | grep -qiE '^(PART)?LABEL=(factory|KEYBOX)'; then
+        log $0 "Ignorando particao factory/keybox ${1} (nao e games externos)."
+        return 0
+      fi
+
       FSTYPE=$(blkid -o export ${1} | awk 'BEGIN {FS="="} /TYPE/ {print $2}')
       case ${FSTYPE} in
         ext4 | btrfs)

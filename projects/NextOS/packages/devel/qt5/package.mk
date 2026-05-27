@@ -57,6 +57,11 @@ configure_package() {
 }
 
 pre_configure_target() {
+  # GCC novo nao inclui mais <cstdint> transitivamente -> qtdeclarative
+  # (qv4compiler.cpp) falha 'uintptr_t/uint32_t does not name a type'.
+  # Force-include resolve em todo o qt5 (vai pro QMAKE_CXXFLAGS).
+  export CXXFLAGS="${CXXFLAGS} -include cstdint"
+
   PKG_CONFIGURE_OPTS_TARGET="-prefix /usr
                              -sysroot ${SYSROOT_PREFIX}
                              -hostprefix ${TOOLCHAIN}

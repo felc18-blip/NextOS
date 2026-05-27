@@ -13,7 +13,7 @@
 # MALI_WAYLAND_AFBC=0: libmali aloca buffer LINEAR no plane primário do
 # meson-drm (que rejeita AFBC modifiers no atomic commit).
 cat <<PROFILE >/storage/.config/profile.d/090-ui_service
-UI_SERVICE="sway.service essway.service"
+UI_SERVICE="essway.service"
 MALI_WAYLAND_AFBC=0
 PROFILE
 

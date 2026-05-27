@@ -36,3 +36,7 @@ fi
 if [ "${DEVICE}" = "Amlogic-nxtos" ]; then
   PKG_CONFIGURE_OPTS_TARGET="${PKG_CONFIGURE_OPTS_TARGET} --enable-bundled=yes"
 fi
+
+# GCC novo (toolchain) trata warnings como erro e quebra o build do strace
+# (ex: libstrace_a-ioctl.o). Desliga o -Werror interno do strace.
+PKG_CONFIGURE_OPTS_TARGET="${PKG_CONFIGURE_OPTS_TARGET} --enable-gcc-Werror=no"

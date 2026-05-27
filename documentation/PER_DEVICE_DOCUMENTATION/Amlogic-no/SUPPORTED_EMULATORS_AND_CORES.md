@@ -88,7 +88,7 @@
 |Panasonic|3DO (3do)|1993|`3do`|.iso .bin .chd .cue|**retroarch:** opera (default)<br>|
 |Philips|CD-i (cdi)|1991|`cdi`|.chd .cue .iso|**retroarch:** same_cdi (default)<br>|
 |Philips|VideoPac (videopac)|1978|`videopac`|.bin .zip .7z|**retroarch:** o2em (default)<br>|
-|Sammy|Atomiswave (atomiswave)|2003|`atomiswave`|.lst .bin .dat .zip .7z|**retroarch:** flycast (default)<br>**flycast:** flycast-sa<br>|
+|Sammy|Atomiswave (atomiswave)|2003|`atomiswave`|.lst .bin .dat .zip .7z|**retroarch:** flycast (default)<br>**retroarch:** morpheuscast_xtreme32<br>**flycast:** flycast-sa<br>|
 |Sega|Dreamcast (dreamcast)|1998|`dreamcast`|.cdi .gdi .chd .m3u .cue|**retroarch:** flycast (default)<br>**flycast:** flycast-sa<br>|
 |Sega|Game Gear (gamegear)|1990|`gamegear`|.bin .gg .zip .7z|**retroarch:** gearsystem (default)<br>**retroarch:** genesis_plus_gx<br>**retroarch:** picodrive<br>**retroarch:** smsplus<br>|
 |Sega|Game Gear (Hacks) (ggh)|1990|`gamegearh`|.bin .gg .zip .7z|**retroarch:** gearsystem (default)<br>**retroarch:** genesis_plus_gx<br>**retroarch:** picodrive<br>**retroarch:** smsplus<br>|

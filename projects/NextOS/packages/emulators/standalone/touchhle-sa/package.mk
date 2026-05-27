@@ -6,20 +6,29 @@ PKG_LICENSE="MPLv2"
 PKG_VERSION="d7668926268eded91545fa8ffae6590871ecf5b1"
 PKG_SITE="https://github.com/touchHLE/touchHLE"
 PKG_URL="${PKG_SITE}.git"
-PKG_DEPENDS_TARGET="toolchain cargo:host cargo rust SDL2 sndio"
+PKG_DEPENDS_TARGET="toolchain cargo:host cargo rust SDL2 openal-soft"
 PKG_LONGDESC="touchHLE: high-level emulator for iPhone OS apps"
 PKG_TOOLCHAIN="manual"
 
 make_target() {
   unset CMAKE
-  export RUSTFLAGS="-C link-arg=-lasound"
-  # Rust cmake-rs crate respeita CMAKE_POLICY_VERSION_MINIMUM via env.
-  # touchhle deps (boring, glow) usam CMakeLists com cmake_minimum_required < 3.5.
-  export CMAKE_POLICY_VERSION_MINIMUM=3.5
+  # A feature "static" (default) do touchHLE compila SDL2 + openal-soft do ZERO
+  # via cmake-rs -> bate de frente com nosso GCC/glibc novos (samplerate.h,
+  # cstdint no openal, jack.h, LFS, X11...). Em vez de remendar cada um,
+  # --no-default-features faz o sdl2-sys usar o SDL2 do sistema (via pkg-config)
+  # e o wrapper do openal so linkar -lopenal do sysroot. Mesma receita que ja
+  # compila no Amlogic-old do NextOS-Elite-Edition.
+  #
+  # Rust 1.94 exige -Zunstable-options pra aceitar triple custom
+  # (aarch64-nextos-linux-gnu); RUSTC_BOOTSTRAP=1 libera os -Z no rustc stable.
+  # opt-level=2 desvia de um bug do vetorizador do LLVM em opt-level=3.
+  export RUSTC_BOOTSTRAP=1
+  export RUSTFLAGS="-Zunstable-options -C opt-level=2 ${RUSTFLAGS}"
 
   cargo build \
     --target ${TARGET_NAME} \
-    --release
+    --release \
+    --no-default-features
 }
 
 

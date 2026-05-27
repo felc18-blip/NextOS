@@ -50,6 +50,17 @@ makeinstall_target() {
 	# blob deles em runtime, só o sysroot usa valhall pra link-time check).
 	cp -p lib/arm64/valhall/r44p0/wayland/libMali_g310_dmaheap.so ${SYSROOT_PREFIX}/usr/lib/libMali.so
 
+	# NextOS 2026-05-26 (Amlogic-no X5): apontar libGLESv2/libEGL/libGLESv1_CM
+	# do SYSROOT pro blob real (libMali.so g310, 653 símbolos gl*). Sem isso,
+	# o link de apps GL (retroarch, gl_core/glsl) cai num stub mesa/gallium
+	# sem símbolos gl* → "undefined reference to glBindTexture" no LD.
+	# Garante link-time contra o blob em toda compilação (clean/incremental).
+	for stem in libEGL libGLESv2 libGLESv1_CM; do
+	  for suffix in .so .so.1 .so.2 .so.1.0.0 .so.2.0.0 .so.2.1.0; do
+	    ln -sf libMali.so "${SYSROOT_PREFIX}/usr/lib/${stem}${suffix}"
+	  done
+	done
+
    ln -sf /var/lib/libMali.so ${INSTALL}/usr/lib/libMali.so
 	
     ln -sf /usr/lib/libMali.so ${INSTALL}/usr/lib/libmali.so

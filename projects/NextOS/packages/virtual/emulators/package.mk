@@ -100,6 +100,32 @@ case "${DEVICE}" in
                       mame2003-midway-lr mame2003-xtreme-lr morpheuscast-xtreme32-lr"
     PKG_RETROARCH+=" retropie-shaders"
     ;;
+  Amlogic-no)
+    # Amlogic S905X5/X5M (s7d, Mali-G310 Valhall, GLES 3.2, 4GB RAM). KMSDRM-direto.
+    # Mais capaz que o S905W (nxtos) — herda o set Amlogic + dolphin-sa (GLES3).
+    # box86 = ports x86 Linux (essencial); ENABLE_32BIT habilita o stack 32-bit ARM
+    # (box86 + retroarch32 + cores 32-bit) via virtual/arm, igual ao nxtos.
+    # box86 (essencial p/ ports x86 Linux) reaproveitado do build .arm do nxtos
+    # (binario 32-bit ARM, identico entre devices). daedalus/pcsx/desmume/gpsp
+    # 32-bit ficam pra depois (evita rebuild do stack .arm inteiro).
+    [ "${ENABLE_32BIT}" == "true" ] && EMUS_32BIT="box86"
+    PKG_DEPENDS_TARGET+=" common-shaders glsl-shaders"
+    PKG_EMUS+=" box64 dolphin-sa drastic-sa duckstation-sa mednafen melonds-sa nanoboyadvance-sa portmaster scummvmsa yabasanshiro-sa \
+                biginstinct-sa bigpemu-sa hypseus kronos-sa touchhle-sa vita3k-sa minivmacsa \
+                aethersx2-sa cemu-sa duckstation-legacy-sa pcsx2-sa rpcs3-sa xemu-sa"
+    LIBRETRO_CORES+=" flycast2021-lr geolith-lr uae4arm \
+                      beetle-psx-lr beetle-saturn-lr boom3-lr bsnes-hd-lr bsnes-lr \
+                      desmume-lr dolphin-lr ecwolf-lr gpsp-lr kronos-lr mame2003-lr \
+                      panda3ds-lr play-lr prboom-lr same_cdi-lr tyrquake-lr \
+                      vbam-lr vecx-lr vice-lr vircon32-lr virtualjaguar-lr \
+                      vitaquake2-lr vitaquake3-lr wasm4-lr xmil-lr yabasanshiro-lr \
+                      duckstation-lr mame2016-lr dosbox-lr dosbox-svn-lr \
+                      gametank-lr gametank32-lr geargrafx-lr gearlynx-lr \
+                      ludicrousn64-xtreme-lr ludicrousn64-xtreme32-lr \
+                      mame2003-midway-lr mame2003-xtreme-lr morpheuscast-xtreme32-lr \
+                      2048-lr azahar-lr lrps2-lr ps2-lr"
+    PKG_RETROARCH+=" retropie-shaders"
+    ;;
 esac
 
 # Split building emulators into 2 stages, needed to fit the jobs into the 6 hour GH runner time limit.
@@ -1500,7 +1526,14 @@ makeinstall_target() {
     sed -i '/<name>atarijaguar<\/name>/,/<\/system>/ s|<extension>\([^<]*\)</extension>|<extension>\1 .zip</extension>|' ${INSTALL}/usr/config/emulationstation/es_systems.cfg
   fi
 
-  if [ "${WINDOWMANAGER}" = "weston" ]; then
+  if [ "${DEVICE}" = "Amlogic-no" ]; then
+    # Amlogic-no (S905X5/X5M, s7d) roda o ES DIRETO no KMSDRM, sem compositor.
+    # foot (swaywm-env) e weston-terminal exigem wayland -> falham com
+    # "failed to connect to wayland; no compositor running?" (exit 230) em TODOS
+    # os tools. O ES já solta o DRM master no launch (window->deinit/SDL_Quit),
+    # então o tool roda direto no KMSDRM (igual a um jogo). %ROM% direto.
+    sed -i 's~%RUNCOMMAND%~%ROM%~g' ${INSTALL}/usr/config/emulationstation/es_systems.cfg
+  elif [ "${WINDOWMANAGER}" = "weston" ]; then
     sed -i 's~%RUNCOMMAND%~weston-terminal --command="%ROM%"~g' ${INSTALL}/usr/config/emulationstation/es_systems.cfg
   elif [ "${WINDOWMANAGER}" = "swaywm-env" ]; then
     sed -i 's~%RUNCOMMAND%~/usr/bin/foot %ROM%~g' ${INSTALL}/usr/config/emulationstation/es_systems.cfg

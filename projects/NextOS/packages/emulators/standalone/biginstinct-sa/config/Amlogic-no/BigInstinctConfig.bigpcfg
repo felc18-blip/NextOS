@@ -1,0 +1,9 @@
+{
+    "BigInstinctConfig": {
+        "Input": {
+            "AutoAssign": 1,
+            "ConflictingPad": 0,
+            "DeviceCount": 0
+        }
+    }
+}

@@ -6,9 +6,9 @@
 PKG_DEPENDS_TARGET+=" nvtop apitrace valgrind vim"
 
 # gdb 17.2 + ncurses NCURSES_BOOL macro polui std templates em Amlogic-nxtos
-# (não compila com glibc 2.41). Removido até upstream gdb arrumar.
+# E Amlogic-no (mesmo toolchain/glibc 2.41). Removido até upstream gdb arrumar.
 case "${DEVICE}" in
-  Amlogic-nxtos)
+  Amlogic-nxtos|Amlogic-no)
     PKG_DEPENDS_TARGET=${PKG_DEPENDS_TARGET//"gdb"/}
     PKG_DEPENDS_TARGET=${PKG_DEPENDS_TARGET//"apitrace"/}
     ;;

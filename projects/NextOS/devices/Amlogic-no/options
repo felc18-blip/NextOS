@@ -184,3 +184,9 @@ ARCHR_JOYPAD="no"
 # OpenGL ES support — usado por flycast-lr e outros emuladores libretro.
 OPENGLES_SUPPORT="yes"
 PREFER_GLES="yes"
+
+# 2026-05-27: catalogo completo de emuladores (vita3k, rpcs3, dolphin, azahar,
+# melonds, touchHLE...) deixou o /usr em ~5.0G. O default (4608 MiB) estourou na
+# criacao da imagem ext4 ("cannot write"). 6144 MiB (6GB) cabe os ~5.0G de
+# conteudo + overhead ext4 com folga.
+ROOT_SIZE=6144

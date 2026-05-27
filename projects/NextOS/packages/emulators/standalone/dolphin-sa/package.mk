@@ -59,6 +59,7 @@ fi
 
 pre_configure_target() {
   PKG_CMAKE_OPTS_TARGET+=" -DCMAKE_BUILD_TYPE=Release \
+                           -DMBEDTLS_FATAL_WARNINGS=OFF \
                            -DDISTRIBUTOR="NextOS" \
                            -DENABLE_NOGUI=ON \
                            -DENABLE_EVDEV=ON \

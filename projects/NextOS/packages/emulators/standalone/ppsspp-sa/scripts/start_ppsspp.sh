@@ -125,16 +125,17 @@ ARG=${1//[\\]/}
 # (renderer reporta "OpenGL ES version 0.0" e o emulador crasha SIGSEGV
 # pouco depois do gamepad inicializar).
 
-# Amlogic-nxtos (Mali-450 + Wayland): PPSSPP trava no shutdown ao usuario
-# clicar Exit pelo menu. main loop sai (g_QuitRequested=true) → chama
-# EmuThreadJoin() → emu thread fica em futex_wait eterno (deadlock no Mesa
-# Lima quando libera GPU context com Wayland surface). Processo nunca
-# termina, ES fica travado esperando script retornar.
-# Fix: spawn ppsspp em bg + watchdog que mede voluntary_ctxt_switches
-# agregado das threads filhas. Em gameplay/menu PPSSPP normal: ~500/s.
-# Em deadlock: TODAS threads em futex_wait, delta = 0. Se 6s consecutivos
-# sem delta + dentro do shutdown (apos PPSSPP main retornar break), SIGKILL.
-if echo "${HW_DEVICE}" | grep -q "Amlogic-nxtos"; then
+# Amlogic-nxtos (Mali-450 + Wayland) E Amlogic-no (S905X5/X5M, Valhall blob +
+# KMSDRM): PPSSPP trava no shutdown ao usuario clicar Exit pelo menu. main loop
+# sai (g_QuitRequested=true) → chama EmuThreadJoin() → emu thread fica em
+# futex_wait eterno (deadlock ao liberar o GPU context — Mesa Lima/Wayland no
+# nxtos; blob Mali r44p0/KMSDRM no X5M). Processo nunca termina, ES fica travado
+# esperando o script retornar (tela congelada).
+# Fix: spawn ppsspp em bg + watchdog que mede voluntary_ctxt_switches agregado
+# das threads filhas. Em gameplay/menu PPSSPP normal: ~500/s. Em deadlock: TODAS
+# threads em futex_wait, delta = 0. Se 6s consecutivos sem delta + dentro do
+# shutdown (apos PPSSPP main retornar break), SIGKILL.
+if echo "${HW_DEVICE}" | grep -qE "Amlogic-nxtos|Amlogic-no"; then
   ${EMUPERF} ppsspp --pause-menu-exit "${ARG}" &
   PPID_=$!
   (

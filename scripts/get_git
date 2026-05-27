@@ -82,8 +82,13 @@ _update_submodules() {
       git submodule update --init --recursive ${GIT_SUBMODULE_PARAMS} -- "${submodule}"
       _rv=$?
       if [[ $_rv != 0 ]] ; then
-        echo "Failed to reinitialize submodule: $submodule"
-        return 1
+        # NextOS: submodule indisponivel (ex: commit removido upstream, como o
+        # Vita3K/sdl que o vita3k nem usa - builda com SDL2 do sistema). Em vez
+        # de abortar o get inteiro, avisa e pula. Se o pacote REALMENTE precisar
+        # do submodule, ele falha no build (erro claro la), nao aqui.
+        echo "WARNING: submodule ${submodule} indisponivel - pulando (continua)" >&2
+        git submodule deinit -f "${submodule}" 2>/dev/null || true
+        continue
       fi
     fi
     

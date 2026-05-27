@@ -42,5 +42,10 @@ post_makeinstall_target() {
 }
 
 post_install() {
-  enable_service sway.service
+  # Amlogic-no kmsdrm-direto: sway NÃO é habilitado no boot — wlroots não
+  # modeseta o blob Valhall (travava nos serviços). Continua instalado pra
+  # reteste manual (systemctl start sway). O ES sobe direto no kmsdrm via
+  # essway.service (start_es.sh), com SDL_VIDEODRIVER=kmsdrm vindo do
+  # profile.d/99-amlogic-no-sdl.conf.
+  : # enable_service sway.service  (desabilitado de propósito)
 }
