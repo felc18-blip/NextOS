@@ -1,0 +1,95 @@
+/* ===== NextOS port-s7d: nodes de BOOT (SCMI+clkc+eMMC+eth+simplefb) ===== */
+/ {
+	chosen {
+		framebuffer0: framebuffer {
+			compatible = "simple-framebuffer";
+			reg = <0x0 0x1f800000 0x0 0x800000>;
+			width = <1920>;
+			height = <1080>;
+			stride = <7680>;
+			format = "a8r8g8b8";
+		};
+	};
+
+	sram@50f6000 {
+		compatible = "mmio-sram";
+		reg = <0x0 0x050f6000 0x0 0x100>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0x0 0x050f6000 0x100>;
+
+		scmi_shmem: shmem@0 {
+			compatible = "arm,scmi-shmem";
+			reg = <0x0 0x100>;
+		};
+	};
+
+	firmware {
+		scmi: scmi {
+			compatible = "arm,scmi-smc";
+			arm,smc-id = <0x820000c1>;
+			shmem = <&scmi_shmem>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			scmi_clk: protocol@14 {
+				reg = <0x14>;
+				#clock-cells = <1>;
+			};
+		};
+	};
+};
+
+&apb {
+	clkc: clock-controller@0 {
+		compatible = "amlogic,s7d-clkc";
+		#clock-cells = <1>;
+		reg = <0x0 0x0 0x0 0x49c>, <0x0 0x8000 0x0 0x384>;
+		reg-names = "basic", "pll";
+		clocks = <&xtal>, <&scmi_clk 4>, <&scmi_clk 8>, <&scmi_clk 10>,
+			 <&scmi_clk 12>, <&scmi_clk 13>, <&scmi_clk 16>, <&scmi_clk 17>;
+		clock-names = "xtal", "gp0_pll_src", "hifi0_pll_src", "hifi1_pll_src",
+			      "sys_clk", "axi_clk", "fixed_pll", "gp1_pll";
+	};
+
+	mmc@8c000 {
+		compatible = "amlogic,meson-axg-mmc";
+		reg = <0x0 0x8c000 0x0 0x1000>;
+		interrupts = <GIC_SPI 218 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&clkc CLKID_SYS_SD_EMMC_C>, <&clkc CLKID_FCLK_DIV2>, <&clkc CLKID_FCLK_DIV5>;
+		clock-names = "core", "clkin0", "clkin1";
+		bus-width = <8>;
+		cap-mmc-highspeed;
+		non-removable;
+	};
+
+	ethernet@368000 {
+		compatible = "amlogic,meson-axg-dwmac", "snps,dwmac-4.00";
+		reg = <0x0 0x368000 0x0 0x12ec>, <0x0 0x364000 0x0 0x8>;
+		interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "macirq";
+		clocks = <&clkc CLKID_SYS_ETHPHY>, <&clkc CLKID_FCLK_DIV2>, <&clkc CLKID_FCLK_CLK50M>;
+		clock-names = "stmmaceth", "clkin0", "clkin1";
+		rx-fifo-depth = <4096>;
+		tx-fifo-depth = <2048>;
+		mdio0: mdio {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,dwmac-mdio";
+		};
+	};
+};
+
+&apb {
+	gpu: gpu@400000 {
+		compatible = "arm,mali-valhall-csf";
+		reg = <0x0 0x400000 0x0 0x4000>;
+		interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "job", "mmu", "gpu";
+		clocks = <&clkc CLKID_MALI>;
+		clock-names = "core";
+		/* TODO #3: power-domains do GPU (s7d-pwrc) + firmware mali_csffw.bin */
+	};
+};

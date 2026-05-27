@@ -174,3 +174,37 @@ Branch port-mainline-s7d-panthor (pushed). Base intacta: main + tags.
 CONCLUSÃO HONESTA: a imagem Mesa COMPLETA só faz sentido depois do passo 2 (display). Hoje
 uma imagem "completa" subiria no máximo console/SSH (tela sem GUI). Marco realista agora =
 validar BOOT do kernel no X5M (passo 1).
+
+---
+
+## 🟢 MARCO 2026-05-27: #1 KERNEL COMPILA + #2/#3 MAPEADOS
+
+### #1 — KERNEL MAINLINE 7.1 COMPILA PRO X5M ✅
+- `Image` (30MB) + `amlogic-s7d-s905x5m-bm202.dtb` gerados. Artefatos em build-artifacts/.
+- Clock fechado: clk_regmap_init portado; v4_ops liberado via `CFLAGS_clk-pll.o += -DCONFIG_AMLOGIC_MODIFY`
+  (s7d usa SÓ meson_clk_pll_v4_ops; bloco vendor self-contained, sub-blocos CONFIG_ARM off no arm64);
+  bypass_clk_disable corrigido; outros SoC meson (GXBB/AXG/G12A/S4/T7/AO) desabilitados (X5M-only).
+- DT boot integrado e dtb compila: SCMI(arm,scmi-smc 0x820000c1) + clkc(s7d) + eMMC + eth + simplefb.
+- config funcional salvo em build-artifacts/kernel.config.working.
+
+### #2 — DISPLAY: simpledrm (NÃO o meson-drm monstro) ✅ estratégia + config
+- DESCOBERTA: não preciso portar meson-drm/HDMI vendor pra ter GUI. `CONFIG_DRM_SIMPLEDRM=y`
+  dá um /dev/dri/card (KMS atomic, modo fixo 1080p) sobre o framebuffer que o u-boot já liga.
+  sway/wayland roda nele. Resolução fixa = perfeito p/ TV retro. meson-drm completo (HDMI
+  mode-set/hotplug) vira melhoria FUTURA, não bloqueio.
+- Mainline meson-drm já tem S4 (sucessor próximo do s7d) se um dia quisermos o display nativo.
+
+### #3 — GPU: panthor (open) — node pronto, falta firmware+power+mesa
+- GPU s7d = `arm,mali-valhall-csf` @ 0xFE400000 (size 0x4000), reset 0xFE002000,
+  IRQs GIC_SPI 144(GPU)/145(MMU)/146(JOB), clock CLKID_MALI. Bate 100% com o binding
+  panthor mainline. Node adicionado ao DT (job=146,mmu=145,gpu=144 / clock-names "core").
+- panthor=m no kernel. FALTAM p/ #3: (a) power-domains do GPU (s7d-pwrc não tem entry GPU
+  óbvio — investigar meson-secure-pwrc), (b) firmware **mali_csffw.bin** (Valhall G310 CSF,
+  tem no CoreELEC 22) em /lib/firmware, (c) Mesa GALLIUM_DRIVERS="panfrost" (já confirmado
+  no config/graphic) + symlinks libGL→Mesa.
+
+### PRÓXIMO (ordem)
+1. Montar device Amlogic-no = build mainline próprio (linux 7.1 + patches s7d) X5M-only +
+   GRAPHIC_DRIVERS=panfrost + simpledrm. (kernel.img FIT + dtb.img pro u-boot do X5M.)
+2. Flash kernel+dtb no cartão (só FAT) → teste boot via simplefb/SSH (#1 na vida real).
+3. simpledrm + sway sobe (#2). 4. panthor+firmware+mesa panfrost = GL aberto 32+64 (#3).
