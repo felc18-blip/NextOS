@@ -6,7 +6,12 @@
 
 #include <linux/module.h>
 #include <linux/arm-smccc.h>
+#include <linux/mfd/syscon.h>
+#include <linux/of.h>
+#include <linux/clk-provider.h>
 #include "clk-regmap.h"
+
+int bypass_clk_disable; /* NextOS s7d: def do extern */
 
 static int clk_regmap_check_is_satisfied(struct clk_hw *hw)
 {
@@ -282,6 +287,38 @@ struct regmap *meson_clk_regmap_resource(struct platform_device *pdev, struct de
 	return devm_regmap_init_mmio(dev, base, &clkc_regmap_config);
 }
 EXPORT_SYMBOL_GPL(meson_clk_regmap_resource);
+
+/* NextOS port-s7d: clk_regmap_init dos helpers mainline (cpu-dyndiv/dualdiv).
+ * s7d preseta clk->map, entao retorna 0 cedo. */
+int clk_regmap_init(struct clk_hw *hw)
+{
+	struct clk_regmap *clk = to_clk_regmap(hw);
+	struct device_node *np, *parent_np;
+	struct device *dev;
+
+	if (clk->map)
+		return 0;
+
+	dev = clk_hw_get_dev(hw);
+	if (dev) {
+		clk->map = dev_get_regmap(dev, NULL);
+		if (clk->map)
+			return 0;
+	}
+
+	np = clk_hw_get_of_node(hw);
+	if (np) {
+		parent_np = of_get_parent(np);
+		clk->map = syscon_node_to_regmap(parent_np);
+		of_node_put(parent_np);
+
+		if (!IS_ERR_OR_NULL(clk->map))
+			return 0;
+	}
+
+	return -EINVAL;
+}
+EXPORT_SYMBOL_GPL(clk_regmap_init);
 
 MODULE_DESCRIPTION("Amlogic regmap backed clock driver");
 MODULE_AUTHOR("Jerome Brunet <jbrunet@baylibre.com>");

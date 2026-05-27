@@ -37,7 +37,6 @@
 #include "clk-secure.h"
 #include "clk-pll.h"
 
-static bool bypass_clk_disable; /* NextOS s7d */
 #ifdef CONFIG_AMLOGIC_MODIFY
 #include <linux/arm-smccc.h>
 #endif

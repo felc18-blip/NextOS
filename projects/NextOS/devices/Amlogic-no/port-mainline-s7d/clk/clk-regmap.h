@@ -32,6 +32,8 @@ struct clk_regmap {
 
 #define to_clk_regmap(_hw) container_of(_hw, struct clk_regmap, hw)
 
+int clk_regmap_init(struct clk_hw *hw);
+
 /**
  * struct clk_regmap_gate_data - regmap backed gate specific data
  *

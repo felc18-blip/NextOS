@@ -12,3 +12,18 @@ CONFIG_FB_SIMPLE=y
 CONFIG_DRM_PANTHOR=m
 # secure-monitor (sm node)
 CONFIG_MESON_SM=y
+
+# --- X5M-only: desabilitar outros SoC meson (clk vendor != API mainline) ---
+# CONFIG_COMMON_CLK_GXBB is not set
+# CONFIG_COMMON_CLK_AXG is not set
+# CONFIG_COMMON_CLK_AXG_AUDIO is not set
+# CONFIG_COMMON_CLK_G12A is not set
+# CONFIG_COMMON_CLK_S4_PLL is not set
+# CONFIG_COMMON_CLK_S4_PERIPHERALS is not set
+# CONFIG_COMMON_CLK_T7_PLL is not set
+# CONFIG_COMMON_CLK_T7_PERIPHERALS is not set
+# CONFIG_COMMON_CLK_MESON_AO_CLKC is not set
+# CONFIG_COMMON_CLK_MESON_VID_PLL_DIV is not set
+# CONFIG_COMMON_CLK_MESON_VCLK is not set
+# CONFIG_COMMON_CLK_MESON_SCLK_DIV is not set
+# Mantidos (s7d usa): S7D REGMAP PLL MPLL DUALDIV PHASE CPU_DYNDIV
