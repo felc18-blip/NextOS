@@ -176,3 +176,7 @@ bench-results/
 # Local backup dirs (não fazer push)
 /.backup-target-*/
 /weston_pkg_*.squashfs
+
+# NextOS: backups locais (.bak-pre-*) — nao versionar
+*.bak-pre-panfrost
+*.bak-pre-port-mainline
