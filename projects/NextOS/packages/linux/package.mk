@@ -40,6 +40,15 @@ case ${DEVICE} in
         PKG_VERSION="6.18.13"
         PKG_URL="https://www.kernel.org/pub/linux/kernel/v${PKG_VERSION/.*/}.x/${PKG_NAME}-${PKG_VERSION}.tar.xz"
         ;;
+      Amlogic-no)
+        # NextOS port-s7d: X5M (S905X5M) no kernel mainline 7.1-rc4 + patches s7d
+        # (clock+DT+GPU panthor) em patches/Amlogic-no/. Base = mesmo do nxtos.
+        PKG_VERSION="7.1-rc4"
+        PKG_SHA256=""
+        PKG_URL="https://git.kernel.org/torvalds/t/linux-${PKG_VERSION}.tar.gz"
+        PKG_SOURCE_NAME="linux-${PKG_VERSION}.tar.gz"
+        PKG_PATCH_DIRS="Amlogic-no"
+        ;;
       Amlogic-nxtos)
         # NextOS-Elite-Edition Amlogic-nxtos: kernel mainline 7.1-rc3 (LE13 base)
         # Tarball torvalds RC + patches Amlogic em patches/Amlogic-nxtos/

@@ -1,0 +1,50 @@
+NextOS 2026-05-26: HDMITX connector mode_valid prune de modos sem VIC valido.
+
+Sintoma: no S905X5M (s7d/Mali-G310 Valhall) o ES SDL3 fica em tela preta porque
+o connector DRM HDMI-A-1 anuncia 1920x1080p120hz como modo (a TV oferece no EDID
+e ele entra na vic_list), mas o HDMITX nao tem VIC pra ele -> modeset falha:
+  meson_hdmitx_decide_color_attr *ERROR* invalid vic for 1920x1080p120hz
+  hdmitx_common_validate_mode_locked: get vic from (1920x1080p120hz) fail
+  -> "Could not queue pageflip: -22" em loop -> tela preta.
+O SDL3 KMSDRM escolhe o primeiro modo 1920x1080 (o 120hz, refresh maior),
+que e justamente o invalido.
+
+meson_hdmitx_check_mode (callback .mode_valid do connector) retornava MODE_OK
+incondicional, entao o DRM nunca podava o modo. Aqui validamos o nome do modo
+via hdmitx_common_parse_vic_in_edid() (lookup puro, ja usado no validate path)
+e retornamos MODE_BAD quando nao ha VIC resolvivel/suportado. Generico: poda
+qualquer modo anunciado que o HDMITX nao consiga setar. O modo dummy interno e
+preservado.
+
+--- a/common_drivers/drivers/drm/meson_hdmi.c
++++ b/common_drivers/drivers/drm/meson_hdmi.c
+@@ -696,6 +696,29 @@
+ enum drm_mode_status meson_hdmitx_check_mode(struct drm_connector *connector,
+ 					   struct drm_display_mode *mode)
+ {
++	struct hdmitx_common *tx_comm = am_hdmi_info.hdmitx_dev->hdmitx_common;
++	enum hdmi_vic vic;
++
++	if (!mode)
++		return MODE_ERROR;
++
++	/* keep the internal dummy mode (no VIC by design) */
++	if (mode->name[0] && strstr(mode->name, "dummy"))
++		return MODE_OK;
++
++	/*
++	 * Prune modes whose name has no resolvable/rx-supported VIC. The
++	 * HDMITX may advertise modes (e.g. 1920x1080p120hz) for which the
++	 * vic lookup later fails in validate_mode_locked/decide_color_attr,
++	 * causing the modeset to fail (pageflip -22) and a black screen.
++	 * Reject them here so DRM never offers them to userspace (SDL3 etc).
++	 */
++	if (tx_comm && mode->name[0]) {
++		vic = hdmitx_common_parse_vic_in_edid(tx_comm, mode->name);
++		if (vic == HDMI_0_UNKNOWN)
++			return MODE_BAD;
++	}
++
+ 	return MODE_OK;
+ }
+ 
