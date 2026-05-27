@@ -19,8 +19,13 @@ PKG_PATCH_DIRS+=" $(get_pkg_directory opengl-meson)/patches"
 PKG_TOOLCHAIN="manual"
 
 makeinstall_target() {
+  # IMPORTANTE: este pacote é PKG_ARCH=aarch64 e instala APENAS os blobs
+  # 32-bit (eabihf) em ${INSTALL}/usr/lib32 (runtime da imagem). NUNCA pode
+  # escrever em ${SYSROOT_PREFIX} (sysroot 64-bit): blob 32-bit ali envenena
+  # o link de todo pacote aarch64 que usa -lGLESv2/-lEGL -> erro
+  # "skipping incompatible libGLESv2.so". O build ARM 32-bit tem o próprio
+  # opengl-meson p/ popular o sysroot 32-bit. (NextOS 2026-05-27)
   mkdir -p ${INSTALL}/usr/lib32
-  mkdir -p ${SYSROOT_PREFIX}/usr/lib
   local DIR_MESON="$(get_build_dir opengl-meson)"
   local DIR_ARM=${DIR_MESON}/lib/eabihf
   local DIR_ARM_local=${PKG_DIR}/src/eabihf
@@ -44,7 +49,6 @@ makeinstall_target() {
       cp -p ${DIR_ARM_local}/dvalin/r12p0/fbdev/libMali.so ${INSTALL}/usr/lib32/libMali.dvalin.so
       # Valhall REAL blob lib32 r41p0 fbdev — extraído do CoreELEC SHA 8bfb8ebe
       cp -p ${DIR_ARM_local}/valhall/r41p0/fbdev/libMali.so ${INSTALL}/usr/lib32/libMali.valhall.so
-      cp -p ${DIR_ARM_local}/gondul/r12p0/fbdev/libMali.so ${SYSROOT_PREFIX}/usr/lib/libMali.so
 
   if [[ "${SINGLE_LIBMALI}" == 'no' ]]; then
     ln -sf /var/lib32/libMali.so ${INSTALL}/usr/lib32/libMali.so
@@ -72,13 +76,7 @@ makeinstall_target() {
   local LINK_NAME
   for LINK_NAME in ${LINK_LIST}; do
     ln -sf libMali.so ${INSTALL}/usr/lib32/${LINK_NAME}
-    ln -sf libMali.so ${SYSROOT_PREFIX}/usr/lib/${LINK_NAME}
   done
-
-  # install headers and libraries to TOOLCHAIN
-  cp -rf ${DIR_MESON}/include/* ${SYSROOT_PREFIX}/usr/include
-  cp -rf "$(get_build_dir opengl-meson)/lib/pkgconfig/"* ${SYSROOT_PREFIX}/usr/lib/pkgconfig
-  cp ${SYSROOT_PREFIX}/usr/include/EGL_platform/platform_fbdev/* ${SYSROOT_PREFIX}/usr/include/EGL
-  rm -rf ${SYSROOT_PREFIX}/usr/include/EGL_platform
+  # NÃO copiar headers/pkgconfig/symlinks pro sysroot 64-bit (ver nota acima).
 }
 
