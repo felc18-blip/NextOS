@@ -17,6 +17,7 @@ PKG_PATCH_DIRS="${LINUX} mainline ${DEVICE} default"
 
 [[ "${DEVICE}" == RK* ]] && PKG_PATCH_DIRS+=" mainline-rockchip"
 [[ "${DEVICE}" == SM* ]] && PKG_DEPENDS_TARGET+=" mkbootimg:host"
+[ "${BUILD_ANDROID_BOOTIMG}" = "yes" ] && PKG_DEPENDS_TARGET+=" mkbootimg:host"
 
 case ${DEVICE} in
   RK3588)
@@ -362,6 +363,17 @@ makeinstall_target() {
 
   if [ "${BOOTLOADER}" != "qcom-abl" ]; then
   	cp -p arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET} ${INSTALL}/.image/
+  	# NextOS port-s7d (Amlogic-no X5M): u-boot bootm exige ANDROID! boot image
+  	# (nao Image.lzo cru). Embrulha kernel mainline + dtb s7d no --second.
+  	if [ "${BUILD_ANDROID_BOOTIMG}" = "yes" ]; then
+  	  ANDROID_DTB=$(ls arch/${TARGET_KERNEL_ARCH}/boot/dts/amlogic/amlogic-s7d-*.dtb 2>/dev/null | head -1)
+  	  echo -n "dummy" > ${INSTALL}/.image/ramdisk.dummy
+  	  mkbootimg --kernel ${INSTALL}/.image/${KERNEL_TARGET} --ramdisk ${INSTALL}/.image/ramdisk.dummy \
+  	    ${ANDROID_DTB:+--second ${ANDROID_DTB}} ${ANDROID_BOOTIMG_OPTIONS} \
+  	    --output ${INSTALL}/.image/${KERNEL_TARGET}.android && \
+  	    mv -f ${INSTALL}/.image/${KERNEL_TARGET}.android ${INSTALL}/.image/${KERNEL_TARGET}
+  	  rm -f ${INSTALL}/.image/ramdisk.dummy
+  	fi
   else
 
     gzip -c "arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET}" > "${INSTALL}/.image/kernel.gz"
