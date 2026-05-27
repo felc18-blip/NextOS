@@ -107,6 +107,27 @@ console na TV, sem UART e sem driver de display/GPU. É o caminho de teste. Back
    DESABILITAR outros COMMON_CLK_<soc> (g12a/gxbb/axg/s4/...) que usam clk-pll mainline (conflito)
 6. integrar device Amlogic-no pra usar kernel mainline 7.1 + estes patches → build → flash → teste simplefb
 
+## 🔑 CADEIA DE BOOT REAL (descoberta) — SCMI é a fundação
+clkc precisa de 8 parents: `&xtal` + 7 via `&scmi_clk`: GP0_PLL_SRC, HIFI0_PLL_SRC,
+ETH_HIFI1_PLL_SRC, SYS_CLK, AXI_CLK, **FIXED_PLL**, GP1_PLL. O eMMC e o ethernet derivam
+clocks do clkc que vêm do **FIXED_PLL (SCMI)**. Logo: **SCMI → clkc → eMMC/ethernet → boot.**
+Ethernet tb usa mailbox `<&mbox_fifo S7D_REE2AO_ETH>`.
+
+**SCMI no mainline:** os PLLs seguros (smc_id no s7d.c) = clocks SCMI (firmware BL31/ATF).
+Mainline tem SCMI generico. Transporte: vendor usa mailbox; **mainline pode usar `arm,scmi-smc`
+(SCMI sobre SMC, sem mailbox HW)** se o firmware do X5M suportar — verificar. Precisa node
+`firmware { scmi { ... protocol@14 (clock) } }` provendo `scmi_clk`. Essa é a PRÓXIMA fundação
+(antes do clkc). Sub-bringup: SCMI transport + protocolos clock/power.
+
+## STATUS GERAL DO PORT (2026-05-27)
+✅ Viabilidade provada (X5M no mainline 7.1 + panthor.ko)
+✅ Clock DRIVER portado e compilando (s7d.c+clk-pll+clk-regmap)
+✅ Toda a referencia HW mapeada (addrs clkc/eMMC/eth/fb/uart, deps SCMI+mailbox)
+✅ Debug sem-UART definido (simplefb na TV)
+⏳ Falta (multi-semana): SCMI/mailbox → DT nodes → kernel config → integrar device →
+   build → boot-to-SSH (teste simplefb) → DISPLAY KMS (o monstro) → GPU panthor + Mesa
+Branch port-mainline-s7d-panthor (pushed). Base intacta: main + tags.
+
 ## Refs (no build, vendor = fonte de verdade)
 - Vendor clk: `build.NextOS-Amlogic-no.aarch64/build/common_drivers-*/drivers/clk/meson/{s7d.c,clk-pll.c,clk-pll.h}`
 - Mainline kernel workspace: `build.NextOS-Amlogic-nxtos.aarch64/build/linux-7.1-rc4/`
