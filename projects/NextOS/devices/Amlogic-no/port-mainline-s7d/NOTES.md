@@ -76,8 +76,36 @@ tipo `struct pll_rate_range`, helper `meson_clk_pll_params_to_rate`. Restaurado 
 4. Recompilar clk-pll.o + s7d.o → zero erros.
 5. DT nodes (clkc + eMMC `amlogic,meson-axg-mmc` + ethernet dwmac-meson) → boot-to-SSH.
 
-⚠️ TESTE: sem UART/serial no X5M não dá pra validar boot (sem display ainda, sem SSH até ethernet
-funcionar). Felipe vai providenciar serial ("precisamos"). Bring-up de kernel exige serial.
+## CLOCK DRIVER COMPILA ✅ (2026-05-27)
+s7d.c + clk-pll.{c,h} + clk-regmap.{c,h} + clk-secure.h portados pro mainline 7.1 → `s7d.o`
+compila. (round_rate→determine_rate nos ops; secure-PLL/mux/div via smc_id mantidos.)
+Arquivos finais em `port-mainline-s7d/clk/`. Falta wirar Makefile/Kconfig no kernel + DT.
+
+## REFERÊNCIA DE HARDWARE DO X5M (colhida do device 64-bit vivo + DT vendor meson-s7d.dtsi)
+- **UART**: `earlycon=aml_uart,0xfe07a000` @ 921600, console=ttyS0 (mainline: aml_uart/meson-uart)
+- **clkc** (clock-controller): em `apb4@fe000000` (simple-bus, size 0x480000), reg offsets
+  basic=0x0 (0x49c), pll=0x8000 (0x384). compatible `amlogic,s7d-clkc`.
+  **Depende de `&xtal` + `&scmi_clk CLKID_SCMI_*`** → os PLLs seguros (smc_id) são SCMI!
+  Precisa do node SCMI (firmware arm,scmi + mailbox) + driver SCMI do mainline.
+- **eMMC** `mmc@fe08c000`, **SD** `sd@fe08a000`, **SDIO** `sdio@fe088000`
+  (vendor `amlogic,meson-v8-mmc` → mainline `amlogic,meson-axg-mmc`, driver meson-gx-mmc)
+- **ethernet** `ethernet@fe368000` = `amlogic,meson-axg-dwmac`+`snps,dwmac-4.00` (MAINLINE NATIVO ✓)
+- **framebuffer** (logo do u-boot): `logo_reserved`/`linux,meson-fb` @ **0x1f800000, 0x800000 (8MB)**,
+  1920x1080, 32bpp ARGB8888 (a8r8g8b8), stride 7680 → **simplefb node** pro console na TV
+
+## DEBUG SEM UART (Felipe nao tem serial fisico)
+**simple-framebuffer** node no DT s7d apontando pro fb do u-boot (0x1f800000) → kernel joga
+console na TV, sem UART e sem driver de display/GPU. É o caminho de teste. Backup: pstore/ramoops
+(le por SSH apos voltar pra rom 5.15). SSH-first tambem: se bootar ate userspace+ethernet, sobe SSH.
+
+## Próximo: DT nodes no amlogic-s7d.dtsi do mainline
+1. node SCMI (firmware + mailbox) — clkc depende dele
+2. clkc @ apb4 (s7d-clkc) + xtal
+3. eMMC @ fe08c000 (meson-axg-mmc) + ethernet @ fe368000 (meson-axg-dwmac)
+4. simple-framebuffer @ 0x1f800000 1920x1080 a8r8g8b8
+5. kernel config: COMMON_CLK_S7D=y, PANTHOR=y, MMC_MESON_GX=y, dwmac-meson=y, FB_SIMPLE=y,
+   DESABILITAR outros COMMON_CLK_<soc> (g12a/gxbb/axg/s4/...) que usam clk-pll mainline (conflito)
+6. integrar device Amlogic-no pra usar kernel mainline 7.1 + estes patches → build → flash → teste simplefb
 
 ## Refs (no build, vendor = fonte de verdade)
 - Vendor clk: `build.NextOS-Amlogic-no.aarch64/build/common_drivers-*/drivers/clk/meson/{s7d.c,clk-pll.c,clk-pll.h}`
