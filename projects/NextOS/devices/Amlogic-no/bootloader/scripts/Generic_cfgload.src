@@ -3,10 +3,10 @@ echo "Using device ${device}, number ${devnr}, partition ${partnr}, CoreELEC on 
 setenv remotewakeup "0xffffffff"
 setenv decode_type "0"
 setenv remotewakeupmask "0xffffffff"
-setenv coreelec "quiet"
+setenv coreelec "loglevel=7"
 setenv vout "1080p60hz"
 setenv frac_rate_policy "0"
-setenv consoleopt "console=tty0 no_console_suspend"
+setenv consoleopt "console=tty0 no_console_suspend clk_ignore_unused pd_ignore_unused"
 
 setenv rootopt "BOOT_IMAGE=kernel.img boot=LABEL=NEXTOS disk=LABEL=STORAGE root=LABEL=NEXTOS_ROOT rootwait rw"
 if test "${ce_on_emmc}" = "yes"; then setenv rootopt "BOOT_IMAGE=kernel.img boot=LABEL=CE_FLASH disk=FOLDER=/dev/CE_STORAGE"; fi
