@@ -55,6 +55,30 @@ Fonte: `common_drivers-*/drivers/clk/meson/clk-pll.c` (vendor). Alvo: mainline `
 clk-secure.h JÁ copiado pro mainline (`drivers/clk/meson/clk-secure.h`, 46 linhas, defines SMC).
 s7d.c JÁ adaptado (em port-mainline-s7d/clk/s7d.c — incluir no patch final).
 
+### REFINAMENTO (2026-05-27, após tentativa): port piecemeal do v4_ops NÃO basta
+Tentei adicionar só o bloco v4 (1192-1613) + alguns campos ao clk-pll do mainline → o v4
+puxa QUASE TODO o framework estendido do vendor: campos `od_max`/`fixed_n`/`pll_range`/`fl`/`th`,
+flags `FIXED_N`/`FIXED_EN0P5`/`FIXED_FRAC_WEIGHT_PRECISION`/`READ_ONLY`/`IGNORE_INIT`/`RSTN`,
+tipo `struct pll_rate_range`, helper `meson_clk_pll_params_to_rate`. Restaurado o mainline.
+
+**PLANO CERTO (wholesale + trim):**
+1. **clk-pll.h** ← usar o do VENDOR inteiro (`clk/vendor-ref/clk-pll.h.vendor`) — tem todos os
+   campos/flags/macros/tipos. Substitui o do mainline.
+2. **clk-pll.c** ← usar o do VENDOR (`clk/vendor-ref/clk-pll.c.vendor`, 1626 linhas) MAS:
+   - REMOVER/stubar os 4 ops que usam `round_rate` (API velha, quebra no 7.1):
+     `meson_clk_pll_ops`, `meson_clk_pll_ro_ops`, `meson_clk_pll_v3_ops`, `meson_clk_pcie_pll_ops`
+     (o s7d só usa `meson_clk_pll_v4_ops`, que já é determine_rate ✓)
+   - definir `static bool bypass_clk_disable;`
+   - já inclui clk-secure.h + arm-smccc
+3. **DESABILITAR os outros SoC clock drivers meson** no .config do Amlogic-no (usam a API do
+   mainline clk-pll, quebram com o do vendor): a1/axg/c3/g12a/gxbb/gxl/s4/t7/meson8/sm1 —
+   o Amlogic-no SÓ precisa do s7d (COMMON_CLK_S7D). Manter infra (regmap/mpll/dualdiv/phase/...).
+4. Recompilar clk-pll.o + s7d.o → zero erros.
+5. DT nodes (clkc + eMMC `amlogic,meson-axg-mmc` + ethernet dwmac-meson) → boot-to-SSH.
+
+⚠️ TESTE: sem UART/serial no X5M não dá pra validar boot (sem display ainda, sem SSH até ethernet
+funcionar). Felipe vai providenciar serial ("precisamos"). Bring-up de kernel exige serial.
+
 ## Refs (no build, vendor = fonte de verdade)
 - Vendor clk: `build.NextOS-Amlogic-no.aarch64/build/common_drivers-*/drivers/clk/meson/{s7d.c,clk-pll.c,clk-pll.h}`
 - Mainline kernel workspace: `build.NextOS-Amlogic-nxtos.aarch64/build/linux-7.1-rc4/`
