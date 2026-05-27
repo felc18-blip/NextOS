@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * NextOS port-s7d: nodes de BOOT pro mainline 7.1 amlogic-s7d.dtsi (esqueleto).
+ * Cadeia: SCMI (firmware, SMC) -> clkc (s7d-clkc) -> eMMC/ethernet. + simplefb
+ * pra console na TV (debug sem UART). Drivers mainline-nativos exceto o clkc
+ * (portado em port-mainline-s7d/clk/). Enderecos do DT vendor meson-s7d.dtsi +
+ * device 64-bit vivo. INTEGRAR estes nodes no amlogic-s7d.dtsi (ou via overlay).
+ *
+ * Pendencias antes de buildar:
+ *  - confirmar CLKID_* do clkc (binding s7d-clkc.h: SYS_SD_EMMC_C, SYS_ETHPHY,
+ *    FCLK_DIV2, FCLK_CLK50M) e os pinctrl de emmc/eth (do vendor)
+ *  - kernel config: COMMON_CLK_S7D=y, ARM_SCMI_PROTOCOL=y, ARM_SCMI_TRANSPORT_SMC=y,
+ *    COMMON_CLK_SCMI=y, MMC_MESON_GX=y, dwmac-meson(STMMAC_PLATFORM+DWMAC_MESON)=y,
+ *    FB_SIMPLE=y/DRM_SIMPLEDRM=y, PANTHOR=y; desabilitar outros COMMON_CLK_<soc>
+ */
+
+#include <dt-bindings/clock/s7d-clkc.h>
+
+/ {
+	/* framebuffer do u-boot (logo) -> console na TV sem driver de display */
+	chosen {
+		framebuffer0: framebuffer {
+			compatible = "simple-framebuffer";
+			reg = <0x0 0x1f800000 0x0 0x800000>; /* 8 MiB */
+			width = <1920>;
+			height = <1080>;
+			stride = <7680>;	/* 1920 * 4 */
+			format = "a8r8g8b8";
+			status = "okay";
+		};
+	};
+
+	/* SRAM com a shmem do SCMI (transporte SMC) */
+	sram@50f6000 {
+		compatible = "mmio-sram";
+		reg = <0x0 0x050f6000 0x0 0x100>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0x0 0x050f6000 0x100>;
+
+		scmi_shmem: shmem@0 {
+			compatible = "arm,scmi-shmem";
+			reg = <0x0 0x100>;
+		};
+	};
+
+	firmware {
+		scmi: scmi {
+			compatible = "arm,scmi-smc";
+			arm,smc-id = <0x820000c1>;
+			shmem = <&scmi_shmem>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			scmi_clk: protocol@14 {
+				reg = <0x14>;
+				#clock-cells = <1>;
+			};
+		};
+	};
+};
+
+/* clock controller s7d dentro do apb@fe000000 (driver portado: amlogic,s7d-clkc) */
+&apb {
+	clkc: clock-controller@0 {
+		compatible = "amlogic,s7d-clkc";
+		#clock-cells = <1>;
+		reg = <0x0 0x0 0x0 0x49c>,
+		      <0x0 0x8000 0x0 0x384>;
+		reg-names = "basic", "pll";
+		clocks = <&xtal>,
+			 <&scmi_clk 4>,	/* GP0_PLL_SRC */
+			 <&scmi_clk 8>,	/* HIFI0_PLL_SRC */
+			 <&scmi_clk 10>,	/* ETH_HIFI1_PLL_SRC */
+			 <&scmi_clk 12>,	/* SYS_CLK */
+			 <&scmi_clk 13>,	/* AXI_CLK */
+			 <&scmi_clk 16>,	/* FIXED_PLL */
+			 <&scmi_clk 17>;	/* GP1_PLL */
+		clock-names = "xtal", "gp0_pll_src", "hifi0_pll_src",
+			      "hifi1_pll_src", "sys_clk", "axi_clk",
+			      "fixed_pll", "gp1_pll";
+	};
+};
+
+/* eMMC @ fe08c000 (driver mainline meson-gx-mmc) */
+&soc {
+	sd_emmc_c: mmc@fe08c000 {
+		compatible = "amlogic,meson-axg-mmc";
+		reg = <0x0 0xfe08c000 0x0 0x1000>;
+		interrupts = <GIC_SPI 218 IRQ_TYPE_EDGE_RISING>; /* confirmar IRQ no vendor */
+		clocks = <&clkc CLKID_SYS_SD_EMMC_C>,
+			 <&clkc CLKID_FCLK_DIV2>,	/* confirmar mux no vendor */
+			 <&clkc CLKID_FCLK_DIV5>;
+		clock-names = "core", "clkin0", "clkin1";
+		bus-width = <8>;
+		cap-mmc-highspeed;
+		mmc-hs200-1_8v;
+		non-removable;
+		status = "okay";
+		/* TODO: pinctrl emmc do vendor */
+	};
+
+	ethmac: ethernet@fe368000 {
+		compatible = "amlogic,meson-axg-dwmac", "snps,dwmac-4.00";
+		reg = <0x0 0xfe368000 0x0 0x12ec>,
+		      <0x0 0xfe364000 0x0 0x8>;
+		interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "macirq";
+		clocks = <&clkc CLKID_SYS_ETHPHY>,
+			 <&clkc CLKID_FCLK_DIV2>,
+			 <&clkc CLKID_FCLK_CLK50M>;
+		clock-names = "stmmaceth", "clkin0", "clkin1";
+		rx-fifo-depth = <4096>;
+		tx-fifo-depth = <2048>;
+		status = "okay";
+		/* TODO: phy-mode + mdio/phy do vendor (realtek) */
+		mdio0: mdio {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "snps,dwmac-mdio";
+		};
+	};
+};
