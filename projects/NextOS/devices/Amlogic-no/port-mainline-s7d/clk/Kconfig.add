@@ -1,0 +1,13 @@
+config COMMON_CLK_S7D
+	tristate "S7D SoC (S905X5M) clock controller support"
+	depends on ARM64
+	default ARCH_MESON
+	select COMMON_CLK_MESON_CLKC_UTILS
+	select COMMON_CLK_MESON_REGMAP
+	select COMMON_CLK_MESON_DUALDIV
+	select COMMON_CLK_MESON_PLL
+	select COMMON_CLK_MESON_MPLL
+	select COMMON_CLK_MESON_PHASE
+	select COMMON_CLK_MESON_CPU_DYNDIV
+	help
+	  NextOS port: clock controller for Amlogic S905X5M (s7d).

@@ -1,0 +1,1 @@
+obj-$(CONFIG_COMMON_CLK_S7D) += s7d.o
