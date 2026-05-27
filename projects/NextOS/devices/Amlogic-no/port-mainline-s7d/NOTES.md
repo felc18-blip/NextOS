@@ -29,13 +29,31 @@ Revert: tag `estado-r44p0-kmsdrm-funcionando` / `base-pre-port-mainline`.
   - macros faltando: `PLL_PARAMS_v4`, flag `CLK_MESON_PLL_POWER_OF_TWO`
   - Compile para em: `s7d.c:522 PLL_PARAMS_v4`, `s7d.c:297 meson_clk_pll_data has no member l_rst/od/smc_id/secid`
 
-## Próximo passo concreto
-Portar as extensões secure-PLL do clk-pll vendor pro mainline `drivers/clk/meson/clk-pll.{c,h}`:
-1. Adicionar campos `od`, `smc_id`, `secid`, `secid_disable`, `l_rst` em `meson_clk_pll_data`
-2. Adicionar caminho SMC (arm_smccc_smc) no set_rate/enable quando `smc_id` setado (copiar do vendor clk-pll.c)
-3. Adicionar `PLL_PARAMS_v4` macro + `CLK_MESON_PLL_POWER_OF_TWO` flag
-4. Recompilar `s7d.o` até zero erros
-5. Depois: DT nodes (clkc, eMMC meson-gx-mmc, ethernet dwmac) → boot-to-SSH
+## Próximo passo concreto — port ADITIVO do meson_clk_pll_v4_ops pro mainline clk-pll
+(Descoberta: NÃO substituir o clk-pll do mainline pelo vendor — o vendor usa a API ANTIGA
+`round_rate` em 5 ops; o mainline 7.1 usa `determine_rate`. MAS o `meson_clk_pll_v4_ops`
+— o ÚNICO que o s7d usa — JÁ usa `determine_rate` ✓. Então porta-se SÓ o v4 subset,
+ADITIVO ao clk-pll do mainline que já tem a API certa.)
+
+Fonte: `common_drivers-*/drivers/clk/meson/clk-pll.c` (vendor). Alvo: mainline `clk-pll.{c,h}`.
+1. **clk-pll.h** (mainline): adicionar em `struct meson_clk_pll_data` os campos
+   `struct parm l_rst; struct parm od; unsigned int smc_id; u8 secid; u8 secid_disable;`
+   (+ `th`/`fl` se as macros referenciarem). Adicionar macro `PLL_PARAMS_v4(_m,_n,_od)`,
+   flag `CLK_MESON_PLL_POWER_OF_TWO BIT(3)`, e campo `od` no `struct pll_params_table`.
+2. **clk-pll.c** (mainline): APPEND as funções v4 do vendor (já são determine_rate-API):
+   - `meson_clk_pll_is_enabled` (vendor linha 574)
+   - bloco v4 vendor linhas ~1190–1600: `meson_clk_pll_v4_recalc_rate`,
+     `meson_clk_pll_v4_get_range_m`, `meson_clk_pll_v4_get_params`,
+     `meson_clk_pll_v4_determine_rate`, `meson_clk_pll_v4_init`,
+     `meson_clk_pll_v4_enable`, `meson_clk_pll_v4_disable`, `meson_clk_pll_v4_set_rate`
+   - exportar `const struct clk_ops meson_clk_pll_v4_ops` (EXPORT_SYMBOL_GPL)
+   - resolver `bypass_clk_disable` (1 ref — definir/portar do vendor)
+   - `#include "clk-secure.h"` (já trazido) + `<linux/arm-smccc.h>` pros secure PLLs
+3. Recompilar `s7d.o` + `clk-pll.o` até zero erros.
+4. Depois: DT nodes (clkc s7d + eMMC `amlogic,meson-axg-mmc` + ethernet dwmac-meson) → **boot-to-SSH**.
+
+clk-secure.h JÁ copiado pro mainline (`drivers/clk/meson/clk-secure.h`, 46 linhas, defines SMC).
+s7d.c JÁ adaptado (em port-mainline-s7d/clk/s7d.c — incluir no patch final).
 
 ## Refs (no build, vendor = fonte de verdade)
 - Vendor clk: `build.NextOS-Amlogic-no.aarch64/build/common_drivers-*/drivers/clk/meson/{s7d.c,clk-pll.c,clk-pll.h}`
