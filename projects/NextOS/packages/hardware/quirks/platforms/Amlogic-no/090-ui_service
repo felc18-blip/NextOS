@@ -10,23 +10,11 @@
 # fecha o triângulo (GPU fault hardware no primeiro draw). X4 continua
 # rodando rom Elite Edition antiga.
 #
-# 2026-05-27: COMPOSITOR sway (provado: sway+wlroots-rk renderiza no blob g310).
-# UI_SERVICE = sway.service (compositor, dono unico do DRM) + essway.service
-# (ES como cliente wayland via Requires=sway.service). ZERO handoff de DRM master
-# -> resolve a tela preta do libretro (essway antigo era KMSDRM-direto e o blob
-# nao passava o CRTC pra um 2o processo com o ES vivo).
-#
-# Envs do meson (vendor kernel 5.15):
-#  MALI_WAYLAND_AFBC=0   -> libmali aloca LINEAR (meson rejeita AFBC no commit).
-#  WLR_DRM_NO_ATOMIC=1   -> atomic do meson vendor da EINVAL; usa modeset legado.
-#  WLR_NO_HARDWARE_CURSORS=1 -> meson sem cursor plane; sway desenha por software.
-#  WLR_BACKENDS=drm,libinput -> backend direto (sem nested).
+# MALI_WAYLAND_AFBC=0: libmali aloca buffer LINEAR no plane primário do
+# meson-drm (que rejeita AFBC modifiers no atomic commit).
 cat <<PROFILE >/storage/.config/profile.d/090-ui_service
-UI_SERVICE="sway.service essway.service"
+UI_SERVICE="essway.service"
 MALI_WAYLAND_AFBC=0
-WLR_DRM_NO_ATOMIC=1
-WLR_NO_HARDWARE_CURSORS=1
-WLR_BACKENDS="drm,libinput"
 PROFILE
 
 ### GPU stack — Valhall libMali blob (wayland-drm-dmaheap)

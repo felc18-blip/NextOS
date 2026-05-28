@@ -1,0 +1,32 @@
+[Unit]
+# Amlogic-no (Valhall S905X5/X5M/S928X) — override per-device do essway.service
+# global. ÚNICA diferença: removido Requires/After=sway.service. O wlroots/sway
+# não modeseta o blob Valhall (travava nos serviços), então o ES sobe DIRETO no
+# KMSDRM (SDL2), sem compositor. start_es.sh continua o mesmo (Arch nativo):
+# . es_settings -> . /etc/profile -> profile.d/99-amlogic-no-sdl.conf seta
+# SDL_VIDEODRIVER=kmsdrm pra Valhall (sem flag weston-enabled). sway segue
+# instalado pra reteste manual (systemctl start sway).
+Description=EmulationStation (Amlogic-no KMSDRM direto, sem sway)
+ConditionPathExists=/var/lock/start.games
+RequiresMountsFor=/storage
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+Environment=HOME=/storage
+# EE_KMSDRM_RELEASE_DRM=1: pra lançar jogo no kmsdrm-direto o ES precisa liberar
+# o DRM master (deinit/reinit da janela em volta do system()), senão emulador dá
+# tela preta ("Could not create EGL window surface"). Depende de patch no fork do
+# ES (felc18-blip/emulationstation-next) — inofensivo se ignorado. Verificar no
+# boot test de jogos. SDL_KMSDRM_VSYNC_DEFAULT=1 evita tearing no blob r44p0.
+Environment=EE_KMSDRM_RELEASE_DRM=1
+Environment=SDL_KMSDRM_VSYNC_DEFAULT=1
+EnvironmentFile=/etc/profile
+ExecStart=/usr/bin/start_es.sh
+WorkingDirectory=/storage
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=nextos.target
