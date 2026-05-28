@@ -149,8 +149,23 @@ fi
 # 0.0 e o emulador crasha SIGSEGV ~2s depois do "Game ID is" / SDL gamepad reset).
 # Mesa GLTHREAD nao ajuda Lima single-threaded.
 
-# Wayland video driver (sway compositor) — sem isso SDL2 tenta KMSDRM e bate
-# DRM master com o compositor.
+# Video driver depende do device:
+# - Amlogic-no (X5M Valhall G310 KMSDRM-direto): SDL2 = kmsdrm. Launch via
+#   nextos_kmsdrm_launch helper que isola flycast num service systemd-run
+#   (para essway pra liberar refs do blob libMali no card0).
+#   LD_PRELOAD: flycast NAO linka libwayland-client/server/libGLESv2 direto
+#   (resolve runtime via dlopen). Sem essas refs no load, o blob libMali
+#   inicializa EGL parcialmente — page-flip pro HDMI nunca acontece (tela
+#   preta apesar do glBlitFramebuffer test passar). AC GC linka explicito
+#   por isso roda OK. LD_PRELOAD forca o load no inicio = blob feliz.
+# - Outros (Amlogic-nxtos sway, etc): wayland legado.
+if [ "${HW_DEVICE}" = "Amlogic-no" ]; then
+    export SDL_VIDEODRIVER=kmsdrm
+    export SDL_KMSDRM_VSYNC_DEFAULT=1
+    export LD_PRELOAD="/usr/lib/libwayland-client.so.0 /usr/lib/libwayland-server.so.0 /usr/lib/libGLESv2.so.2"
+    exec /usr/bin/nextos_kmsdrm_launch.sh /usr/bin/flycast "${1}"
+fi
+
 export SDL_VIDEODRIVER=wayland
 
 #Run flycast emulator — spawn gptokeyb com delay de 3s. Subindo antes do flycast
