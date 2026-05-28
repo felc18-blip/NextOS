@@ -38,8 +38,15 @@ pre_make_target() {
 }
 
 make_target() {
-  # play-lr (PS2) é Vulkan-leaning + pesado; best-effort em Mali-450 aarch64.
-  cd ${PKG_BUILD}/.${TARGET_NAME} && make ${MAKEFLAGS} || true
+  # play-lr (PS2) usa Ninja (CMake generator). Sem Makefile gerado.
+  # Build pesado (Vulkan-leaning); best-effort em aarch64. Falha silenciosa
+  # pra nao quebrar build geral. Saida: Source/ui_libretro/play_libretro.so
+  cd ${PKG_BUILD}/.${TARGET_NAME}
+  if [ -f build.ninja ]; then
+    ninja play_libretro || ninja || true
+  else
+    make ${MAKEFLAGS} || true
+  fi
 }
 
 makeinstall_target() {

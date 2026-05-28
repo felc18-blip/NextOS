@@ -21,9 +21,30 @@ pre_configure_target() {
 make_target() {
 # This was only necessary in the main repo, but may come to libretro later on
 #  make -C ${PKG_BUILD}/yabause/src/libretro/ generate-files
-  # kronos-lr é x86-only no upstream (Makefile força -msse/-mfpmath=sse).
-  # Best-effort em aarch64 — falha silenciosa pra não travar build geral.
-  make -C ${PKG_BUILD}/yabause/src/libretro/ || true
+  # kronos-lr upstream Makefile default HAVE_SSE=1 → -mfpmath=sse quebra em
+  # aarch64. Passar platform=arm64 que o Makefile reconhece (sets HAVE_SSE=0,
+  # ARCH_IS_LINUX=1). Adicionalmente FORCE_GLES=1 pra usar GLES no Mali
+  # Valhall G310 (Amlogic-no) em vez de OpenGL desktop (sem suporte).
+  # Fallback || true mantido pra não quebrar build geral se outra arch nova
+  # cair aqui sem variante explicita.
+  if [ "${TARGET_ARCH}" = "aarch64" ]; then
+    # FORCE_GLES=1 ativa _OGLES3_ / HAVE_OPENGLES3 mas glsym/glsym_es3.h NAO
+    # inclui GLES3/gl31.h nem gl32.h — entao GL_PIXEL_BUFFER_BARRIER_BIT,
+    # GL_READ_WRITE, glGetTexImage etc usados em compute_shader/vidcs.c e
+    # commongl.c ficam undefined. Toolchain tem gl31.h+gl32.h no sysroot;
+    # force-include via CFLAGS. glGetTexImage nao existe em GLES (gl4.5
+    # desktop) — stub pra 0 antes do compile.
+    sed -i 's|glGetTexImage([^)]*)|0 /* GLES no glGetTexImage */|g' \
+      ${PKG_BUILD}/yabause/src/core/video/opengl/compute_shader/src/vidcs.c
+    # HAVE_CDROM=1 obrigatorio: bug upstream linka file_path.c que usa
+    # string_to_lower() mas stdstring.c (que define) so e listado quando
+    # HAVE_CDROM=1 (Makefile.common linha 169-180).
+    make -C ${PKG_BUILD}/yabause/src/libretro/ platform=arm64 FORCE_GLES=1 \
+      HAVE_CDROM=1 \
+      CFLAGS="-include GLES3/gl32.h" CXXFLAGS="-include GLES3/gl32.h"
+  else
+    make -C ${PKG_BUILD}/yabause/src/libretro/
+  fi
 }
 
 makeinstall_target() {

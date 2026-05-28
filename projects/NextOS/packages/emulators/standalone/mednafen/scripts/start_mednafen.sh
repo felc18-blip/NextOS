@@ -85,6 +85,39 @@ sed -i "s/filesys.path_sav .*/filesys.path_sav \/storage\/roms\/${PLATFORM}/g" $
 sed -i "s/filesys.path_savbackup.*/filesys.path_savbackup \/storage\/roms\/${PLATFORM}/g" $MEDNAFEN_HOME/mednafen.cfg
 sed -i "s/filesys.path_state.*/filesys.path_state \/storage\/roms\/savestates\/${PLATFORM}/g" $MEDNAFEN_HOME/mednafen.cfg
 
+# Amlogic-no (X5M): mednafen 1.32 IGNORA $MEDNAFEN_HOME e usa hardcoded
+# ~/.mednafen (HOME-based). Sem MEDNAFEN_HOME conhecido, ele cria
+# /storage/.mednafen/ separado e procura BIOS em ./firmware (relativo) =
+# /storage/.mednafen/firmware/. Fix: aplicar mesmo sed em /storage/.mednafen/
+# se existir + setar filesys.path_firmware absoluto pro path correto.
+if [ "${HW_DEVICE}" = "Amlogic-no" ]; then
+    SECOND_CFG="/storage/.mednafen/mednafen.cfg"
+    if [ -f "$SECOND_CFG" ]; then
+        sed -i "s|^filesys.path_firmware .*|filesys.path_firmware /storage/roms/bios/${PLATFORM}|" "$SECOND_CFG"
+        sed -i "s|^filesys.path_sav .*|filesys.path_sav /storage/roms/${PLATFORM}|" "$SECOND_CFG"
+        sed -i "s|^filesys.path_savbackup .*|filesys.path_savbackup /storage/roms/${PLATFORM}|" "$SECOND_CFG"
+        sed -i "s|^filesys.path_state .*|filesys.path_state /storage/roms/savestates/${PLATFORM}|" "$SECOND_CFG"
+        # Fullscreen + driver software (Mali Valhall sem OpenGL desktop)
+        sed -i "s|^video.fs .*|video.fs 1|" "$SECOND_CFG"
+        sed -i "s|^video.driver .*|video.driver sdl|" "$SECOND_CFG"
+        # Limpar mappings command.* com && / || (mednafen 1.32 nao aceita)
+        # Linhas command.exit/fast_forward/etc com joystick AND joystick travam
+        # o load do cfg (Line 201 error). Cortar tudo apos primeiro " && " /
+        # " || " em linhas command.* mantem o primeiro mapping valido.
+        python3 -c "
+import re
+with open('$SECOND_CFG') as f:
+    lines = f.readlines()
+for i, l in enumerate(lines):
+    if l.startswith('command.') and (' && ' in l or ' || ' in l):
+        cut = min((l.find(s) for s in [' && ', ' || '] if s in l))
+        lines[i] = l[:cut].rstrip() + '\n'
+with open('$SECOND_CFG', 'w') as f:
+    f.writelines(lines)
+" 2>/dev/null || true
+    fi
+fi
+
 # Get command line switches
 CORRECT_ASPECT=$(get_setting correct_aspect ${PLATFORM} "${GAME}")
 CR=""
