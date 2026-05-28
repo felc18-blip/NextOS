@@ -303,9 +303,12 @@ makeinstall_target() {
       add_emu_core atomiswave retroarch morpheuscast_xtreme32 false
       ;;
     Amlogic-no)
-      # 64-bit puro: morpheuscast_xtreme32 (core 32-bit) removido. DC via flycast.
-      add_emu_core atomiswave retroarch flycast true
-      add_emu_core atomiswave retroarch flycast2021 false
+      # 64-bit puro: morpheuscast_xtreme32 (core 32-bit) removido. flycast2021
+      # DEFAULT pq o flycast (master, mais novo) trava o stack libmali Valhall
+      # G310 no init de shaders/buffers; flycast2021 (versao 2021 estavel)
+      # renderiza limpo. flycast e flycast-sa ficam como alternativas.
+      add_emu_core atomiswave retroarch flycast2021 true
+      add_emu_core atomiswave retroarch flycast false
       add_emu_core atomiswave flycast flycast-sa false
       ;;
     *)
@@ -402,6 +405,13 @@ makeinstall_target() {
       add_emu_core dreamcast flycast flycast-sa true
       add_emu_core dreamcast retroarch flycast false
       add_emu_core dreamcast retroarch flycast2021 false
+      ;;
+    Amlogic-no)
+      # X5M libmali Valhall G310: flycast2021 DEFAULT pq o flycast (master, mais
+      # novo) trava o stack no init; flycast2021 renderiza limpo (proven).
+      add_emu_core dreamcast retroarch flycast2021 true
+      add_emu_core dreamcast retroarch flycast false
+      add_emu_core dreamcast flycast flycast-sa false
       ;;
     *)
       add_emu_core dreamcast retroarch flycast true
@@ -855,6 +865,12 @@ makeinstall_target() {
       add_emu_core naomi flycast flycast-sa true
       add_emu_core naomi retroarch flycast false
       add_emu_core naomi retroarch flycast2021 false
+      ;;
+    Amlogic-no)
+      # X5M libmali Valhall G310: flycast2021 DEFAULT (proven). flycast travava.
+      add_emu_core naomi retroarch flycast2021 true
+      add_emu_core naomi retroarch flycast false
+      add_emu_core naomi flycast flycast-sa false
       ;;
     *)
       add_emu_core naomi retroarch flycast true
