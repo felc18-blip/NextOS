@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+# SPDX-License-Identifier: MIT
+#
+
+## Modular - NextOS
+#
+# Sourced quando CFW_NAME=NextOS pelo PortMaster.
+#
+# Ports KMSDRM-nativos rodam em service systemd-run independente do ES.
+# Wrapper inline mantem gptokeyb no MESMO cgroup que o binario (sobrevive
+# ao stop essway). Restauracao do ES e disparada via systemd-run --no-block
+# do PROPRIO sistema (fora do ExecStopPost) pra evitar deadlock.
+# Outros ports (gmloader, java, etc) → fallback modo PortMaster original.
+
+PORT_32BIT="${PORT_32BIT:-"N"}"
+
+if [[ "$PORT_32BIT" == "Y" ]]; then
+    export SPA_PLUGIN_DIR="/usr/lib32/spa-0.2"
+    export PIPEWIRE_MODULE_DIR="/usr/lib32/pipewire-0.3/"
+fi
+
+export LIBGL_DRIVERS_PATH=/usr/lib/dri
+
+GODOT2_OPTS="-r ${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} -f"
+GODOT_OPTS="--resolution ${DISPLAY_WIDTH}x${DISPLAY_HEIGHT} -f"
+
+pm_platform_helper() {
+    if [ -e "$PM_PIPE" ]; then
+        PortMasterDialogExit
+    fi
+
+    local BIN="$1"
+    [ -z "$BIN" ] && return 0
+    [ ! -x "$BIN" ] && return 0
+
+    case "$(basename "$BIN")" in
+        gmloadernext*|gmloader*|java|mono|*.jar|frt_*|frt|*.appimage)
+            return 0
+        ;;
+    esac
+
+    if ! ldd "$BIN" 2>/dev/null | grep -q "libGLESv2\.so"; then
+        return 0
+    fi
+
+    local WORKDIR
+    WORKDIR="$(dirname "$BIN")"
+    local UNIT="port-runner-$$.service"
+    local BIN_NAME
+    BIN_NAME="$(basename "$BIN")"
+    local GPTOKEYB_BIN="${controlfolder}/gptokeyb"
+
+    local GPTK_FILE=""
+    if [ -f "${WORKDIR}/${BIN_NAME}.gptk" ]; then
+        GPTK_FILE="${WORKDIR}/${BIN_NAME}.gptk"
+    else
+        for F in "${WORKDIR}"/*.gptk; do
+            [ -f "$F" ] && GPTK_FILE="$F" && break
+        done
+    fi
+    local GPTK_ARG=""
+    [ -n "$GPTK_FILE" ] && GPTK_ARG="-c $GPTK_FILE"
+
+    pkill -9 -f gptokeyb 2>/dev/null
+
+    # Wrapper: gptokeyb + binario no mesmo cgroup.
+    # CRUCIAL: o wrapper TAMBEM dispara a restauracao do ES no final via
+    # systemd-run --no-block (PID 1 spawn, totalmente fora do nosso service).
+    # Antes ExecStopPost fazia isso, mas systemd o matava com SIGKILL antes de
+    # completar (deadlock entre stop do service transient + start de outro
+    # service). Agora a restauracao roda DENTRO do wrapper, antes do exit do
+    # service — disparada de forma async pra nao bloquear o exit do service.
+    local WRAPPER="/tmp/port_runner_wrapper_$$.sh"
+    cat > "$WRAPPER" <<WRAPEOF
+#!/bin/sh
+cd "$WORKDIR"
+${GPTOKEYB_BIN} -1 "${BIN_NAME}" $GPTK_ARG &
+GPID=\$!
+"${BIN}"
+RC=\$?
+kill -9 \$GPID 2>/dev/null
+# Restaura ES fora do nosso cgroup pra evitar systemd deadlock no ExecStopPost
+systemd-run --no-block --collect /bin/sh -c 'touch /var/lock/start.games; systemctl reset-failed essway 2>/dev/null; systemctl start essway' 2>/dev/null
+rm -f "$WRAPPER"
+exit \$RC
+WRAPEOF
+    chmod +x "$WRAPPER"
+
+    # Service unit: SO ExecStart (wrapper) + ExecStartPre pra matar essway.
+    # ExecStopPost removido — wrapper cuida da restauracao.
+    if ! systemd-run \
+            --no-block \
+            --collect \
+            --unit="$UNIT" \
+            --service-type=simple \
+            --working-directory="$WORKDIR" \
+            --setenv=SDL_VIDEODRIVER=kmsdrm \
+            --setenv=SDL_KMSDRM_VSYNC_DEFAULT=1 \
+            --setenv=HOME=/storage \
+            --setenv=LD_LIBRARY_PATH="${LD_LIBRARY_PATH}" \
+            --setenv=XDG_DATA_HOME="${XDG_DATA_HOME}" \
+            --setenv=SDL_GAMECONTROLLERCONFIG="${SDL_GAMECONTROLLERCONFIG}" \
+            --property=ExecStartPre='/bin/sh -c "rm -f /var/lock/start.games; systemctl stop essway"' \
+            "$WRAPPER" 2>>/tmp/mod_NextOS.log; then
+        rm -f "$WRAPPER"
+        return 0
+    fi
+
+    exit 0
+}
+
+pm_finish() {
+    pm_gptokeyb_finish 2>/dev/null
+    pm_message_end 2>/dev/null
+}
