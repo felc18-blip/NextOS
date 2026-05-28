@@ -10,6 +10,18 @@ if [ ! -z "$(lsmod | grep 'nvidia')" ]; then
   SWAY_GPU_ARGS="--unsupported-gpu"
 fi
 
+# NextOS Amlogic-no (S905X5/X5M, s7d/s6/s5 — vendor kernel meson 5.15 + libMali
+# Valhall): o atomic do meson rejeita o commit (EINVAL) -> backend LEGADO; o
+# meson nao tem cursor plane (drmModeSetCursor ENXIO) -> cursor por software; e
+# libmali deve alocar LINEAR (sem AFBC) no plane primario. Sem isso o sway nao
+# modeseta o blob g310. (Combinado com o fork rockchip-wlroots -rk, que importa
+# os buffers wayland do cliente Mali, e o patch de cursor non-fatal no -rk.)
+if grep -qE "s7d|s6|s5" /proc/device-tree/compatible 2>/dev/null; then
+  export WLR_DRM_NO_ATOMIC=1
+  export WLR_NO_HARDWARE_CURSORS=1
+  export MALI_WAYLAND_AFBC=0
+fi
+
 if [ ! -S "$XDG_RUNTIME_DIR/bus" ]; then
     dbus-daemon --session --address=unix:path=$XDG_RUNTIME_DIR/bus &
 fi
