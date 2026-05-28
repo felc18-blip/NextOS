@@ -75,7 +75,7 @@ case "${DEVICE}" in
     LIBRETRO_CORES+=" beetle-psx-lr beetle-saturn-lr bsnes-lr bsnes-hd-lr dolphin-lr geolith-lr flycast2021-lr uae4arm"
     PKG_RETROARCH+=" retropie-shaders"
     ;;
-  Amlogic-nxtos)
+  Amlogic-no|Amlogic-nxtos)
     # Amlogic S905W TV box (Mali-450 Utgard, 1GB RAM, GLES 2.0 only).
     # drastic-sa, duckstation-sa, daedalusx64-sa, mednafen — todos validados
     # rodando no NextOS-Elite-Edition (mesmo hardware S905W/Mali-450).
@@ -439,7 +439,7 @@ makeinstall_target() {
   add_emu_core famicom retroarch quicknes false
   add_emu_core famicom retroarch mesen false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core famicom mednafen nes false
       ;;
   esac
@@ -451,7 +451,7 @@ makeinstall_target() {
   add_emu_core fds retroarch quicknes false
   add_emu_core fds retroarch mesen false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core fds mednafen nes false
       ;;
   esac
@@ -491,7 +491,7 @@ makeinstall_target() {
   add_emu_core gb retroarch DoubleCherryGB false
   add_emu_core gb retroarch skyemu false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gb mednafen gb false
       ;;
   esac
@@ -513,7 +513,7 @@ makeinstall_target() {
   add_emu_core gbh retroarch DoubleCherryGB false
   add_emu_core gbh retroarch skyemu false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gbh mednafen gb false
       ;;
   esac
@@ -530,7 +530,7 @@ makeinstall_target() {
   # accuracy alternative. Amlogic-nxtos (S905W Cortex-A53 1.2GHz) tem perf
   # similar/levemente menor — mesma escolha.
   case ${DEVICE} in
-    RK3326|Amlogic-nxtos)
+    RK3326|Amlogic-no|Amlogic-nxtos)
       add_emu_core gba retroarch gpsp true
       add_emu_core gba retroarch mgba false
       ;;
@@ -555,7 +555,7 @@ makeinstall_target() {
       ;;
   esac
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gba mednafen gba false
       ;;
   esac
@@ -573,7 +573,7 @@ makeinstall_target() {
   add_emu_core gbah retroarch beetle_gba false
   add_emu_core gbah retroarch skyemu false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gbah retroarch gpsp false
       add_emu_core gbah mednafen gba false
       ;;
@@ -620,7 +620,7 @@ makeinstall_target() {
   add_emu_core gbc retroarch DoubleCherryGB false
   add_emu_core gbc retroarch skyemu false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gbc mednafen gb false
       ;;
   esac
@@ -641,7 +641,7 @@ makeinstall_target() {
   add_emu_core gbch retroarch DoubleCherryGB false
   add_emu_core gbch retroarch skyemu false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gbch mednafen gb false
       ;;
   esac
@@ -668,7 +668,7 @@ makeinstall_target() {
       add_emu_core gamecube retroarch dolphin false
       add_es_system gamecube
       ;;
-    H700|RK3326|Amlogic-nxtos)
+    H700|RK3326|Amlogic-no|Amlogic-nxtos)
       # Amlogic-nxtos: S905W Mali-450 + 1GB — dolphin (qualquer) é
       # impossível. Não adicionar core nem es_system pra não confundir user.
       ;;
@@ -708,7 +708,7 @@ makeinstall_target() {
       add_es_system wii
       add_es_system wiiware
       ;;
-    H700|RK3326|Amlogic-nxtos)
+    H700|RK3326|Amlogic-no|Amlogic-nxtos)
       # Mesma razão do GameCube — Mali-450 não roda Wii.
       ;;
     *)
@@ -734,7 +734,7 @@ makeinstall_target() {
   add_emu_core gamegear retroarch picodrive false
   add_emu_core gamegear retroarch smsplus false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core gamegear mednafen gg false
       ;;
   esac
@@ -746,7 +746,7 @@ makeinstall_target() {
   add_emu_core ggh retroarch picodrive false
   add_emu_core ggh retroarch smsplus false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core ggh mednafen gg false
       ;;
   esac
@@ -767,7 +767,7 @@ makeinstall_target() {
       add_emu_core atarijaguar bigpemu bigpemu-sa true
       install_script "Start BigPEmu.sh"
     ;;
-    Amlogic-nxtos)
+    Amlogic-no|Amlogic-nxtos)
       # bigpemu-sa ja em PKG_EMUS pra nxtos; binario eh ARM32 (32-bit fork pra
       # Mali-450). Adicionar como opcao secundaria — virtualjaguar libretro
       # default. start_bigpemu.sh ja existe via package mas binario pode estar
@@ -782,7 +782,7 @@ makeinstall_target() {
   add_emu_core atarilynx retroarch handy true
   add_emu_core atarilynx retroarch beetle_lynx false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core atarilynx mednafen lynx false
       ;;
   esac
@@ -794,7 +794,7 @@ makeinstall_target() {
 
   ### Killer Instinct Arcade (BigInstinct standalone, Rich Whitehouse)
   case ${DEVICE} in
-    Amlogic-nxtos)
+    Amlogic-no|Amlogic-nxtos)
       add_emu_core killerinstinct biginstinct biginstinct-sa true
       add_es_system killerinstinct
       ;;
@@ -815,7 +815,7 @@ makeinstall_target() {
   add_emu_core megadrive-japan retroarch genesis_plus_gx_wide false
   add_emu_core megadrive-japan retroarch picodrive
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core megadrive-japan mednafen md false
       ;;
   esac
@@ -838,7 +838,7 @@ makeinstall_target() {
   add_emu_core snesmsu1 retroarch snes9x true
   add_emu_core snesmsu1 retroarch beetle_supafaust false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core snesmsu1 mednafen snes_faust false
       ;;
   esac
@@ -903,7 +903,7 @@ makeinstall_target() {
   add_emu_core ngp retroarch beetle_ngp true
   add_emu_core ngp retroarch race false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core ngp mednafen ngp false
       ;;
   esac
@@ -913,7 +913,7 @@ makeinstall_target() {
   add_emu_core ngpc retroarch beetle_ngp true
   add_emu_core ngpc retroarch race false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core ngpc mednafen ngp false
       ;;
   esac
@@ -928,7 +928,7 @@ makeinstall_target() {
   add_emu_core n64 retroarch parallel_n64 false
   add_emu_core n64 mupen64plus mupen64plus-sa false
   case ${DEVICE} in
-    SDM845|SM8250|SM8550|Amlogic-nxtos)
+    SDM845|SM8250|SM8550|Amlogic-no|Amlogic-nxtos)
       # Amlogic-nxtos usa fork felc18-blip nextos-gles2 (Mali-450 nativo).
       add_emu_core n64 daedalusx64 daedalusx64-sa false
       install_script "Start DaedalusX64.sh"
@@ -981,7 +981,7 @@ makeinstall_target() {
       add_emu_core nds retroarch skyemu false
       install_script "Start MelonDS.sh"
       ;;
-    Amlogic-nxtos)
+    Amlogic-no|Amlogic-nxtos)
       # drastic-sa validado no NextOS-Elite-Edition (S905W Mali-450).
       add_emu_core nds drastic drastic-sa true
       add_emu_core nds melonds melonds-sa false
@@ -1017,7 +1017,7 @@ makeinstall_target() {
   add_emu_core nes retroarch quicknes false
   add_emu_core nes retroarch mesen false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core nes mednafen nes false
       ;;
   esac
@@ -1029,7 +1029,7 @@ makeinstall_target() {
   add_emu_core nesh retroarch quicknes false
   add_emu_core nesh retroarch mesen false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core nesh mednafen nesh false
       ;;
   esac
@@ -1056,7 +1056,7 @@ makeinstall_target() {
   add_emu_core pcengine retroarch beetle_pce false
   add_emu_core pcengine retroarch beetle_supergrafx false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core pcengine mednafen pce false
       add_emu_core pcengine mednafen pce_fast false
       ;;
@@ -1068,7 +1068,7 @@ makeinstall_target() {
   add_emu_core pcenginecd retroarch beetle_pce false
   add_emu_core pcenginecd retroarch beetle_supergrafx false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core pcenginecd mednafen pce false
       add_emu_core pcenginecd mednafen pce_fast false
       ;;
@@ -1078,7 +1078,7 @@ makeinstall_target() {
   ### NEC PC-FX
   add_emu_core pcfx retroarch beetle_pcfx true
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core pcfx mednafen pcfx false
       ;;
   esac
@@ -1091,7 +1091,7 @@ makeinstall_target() {
 
   ### Sony Playstation
   case ${DEVICE} in
-    H700|RK3326|Amlogic-nxtos)
+    H700|RK3326|Amlogic-no|Amlogic-nxtos)
       # S905W Cortex-A53 1.2GHz: pcsx_rearmed32 (lib32) é mais perf que o
       # core aarch64 nativo no JIT do PCSX-ReARMed pra ARM. Idêntico ao
       # RK3326 (Cortex-A35). EMUS_32BIT já inclui pcsx_rearmed-lr no nxtos.
@@ -1192,7 +1192,7 @@ makeinstall_target() {
   add_emu_core genesis retroarch genesis_plus_gx_wide false
   add_emu_core genesis retroarch picodrive false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core genesis mednafen md false
       ;;
   esac
@@ -1203,7 +1203,7 @@ makeinstall_target() {
   add_emu_core genh retroarch genesis_plus_gx_wide false
   add_emu_core genh retroarch picodrive false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core genh mednafen md false
       ;;
   esac
@@ -1215,7 +1215,7 @@ makeinstall_target() {
   add_emu_core mastersystem retroarch picodrive false
   add_emu_core mastersystem retroarch smsplus false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core mastersystem mednafen sms false
       ;;
   esac
@@ -1226,7 +1226,7 @@ makeinstall_target() {
   add_emu_core megadrive retroarch genesis_plus_gx_wide false
   add_emu_core megadrive retroarch picodrive false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core megadrive mednafen md false
       ;;
   esac
@@ -1237,7 +1237,7 @@ makeinstall_target() {
   add_emu_core megadriveh retroarch genesis_plus_gx_wide false
   add_emu_core megadriveh retroarch picodrive false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core megadriveh mednafen md false
       ;;
   esac
@@ -1312,7 +1312,7 @@ makeinstall_target() {
   add_emu_core supergrafx retroarch beetle_supergrafx
   add_emu_core supergrafx retroarch beetle_pce
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core supergrafx mednafen pce false
       add_emu_core supergrafx mednafen pce_fast false
       ;;
@@ -1335,7 +1335,7 @@ makeinstall_target() {
       ;;
   esac
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core snes mednafen snes_faust false
       ;;
   esac
@@ -1357,7 +1357,7 @@ makeinstall_target() {
       ;;
   esac
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core snesh mednafen snes_faust false
       ;;
   esac
@@ -1379,7 +1379,7 @@ makeinstall_target() {
       ;;
   esac
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core snes mednafen snes_faust false
       ;;
   esac
@@ -1413,7 +1413,7 @@ makeinstall_target() {
   add_emu_core tg16 retroarch beetle_pce false
   add_emu_core tg16 retroarch beetle_supergrafx false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core tg16 mednafen pce false
       add_emu_core tg16 mednafen pce_fast false
       ;;
@@ -1425,7 +1425,7 @@ makeinstall_target() {
   add_emu_core tg16cd retroarch beetle_pce false
   add_emu_core tg16cd retroarch beetle_supergrafx false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core tg16cd mednafen pce false
       add_emu_core tg16cd mednafen pce_fast false
       ;;
@@ -1451,7 +1451,7 @@ makeinstall_target() {
   ### Nintendo VirtualBoy
   add_emu_core virtualboy retroarch beetle_vb true
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core virtualboy mednafen vb false
       ;;
   esac
@@ -1460,7 +1460,7 @@ makeinstall_target() {
   ### Bandai Wonderswan
   add_emu_core wonderswan retroarch beetle_wswan true
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core wonderswan mednafen wswan false
       ;;
   esac
@@ -1469,7 +1469,7 @@ makeinstall_target() {
   ### Bandai Wonderswan Color
   add_emu_core wonderswancolor retroarch beetle_wswan true
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
       add_emu_core wonderswancolor mednafen wswan false
       ;;
   esac
