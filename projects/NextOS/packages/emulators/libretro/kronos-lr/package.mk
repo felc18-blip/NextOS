@@ -36,6 +36,13 @@ make_target() {
     # desktop) — stub pra 0 antes do compile.
     sed -i 's|glGetTexImage([^)]*)|0 /* GLES no glGetTexImage */|g' \
       ${PKG_BUILD}/yabause/src/core/video/opengl/compute_shader/src/vidcs.c
+    # GLSL ES exige precision default pra TODOS tipos em compute shaders.
+    # vdp1_start_end_base so declara 'precision highp float' — outSurface
+    # (image2D) e contadores int dao 'S0032: no default precision defined'.
+    # Adicionar precision pra image2D e int no header de cada compute prog.
+    sed -i 's|"precision highp float;\\\\n"|"precision highp float;\\\\n"\\n"#ifdef GL_ES\\\\nprecision highp int;\\\\nprecision highp image2D;\\\\nprecision highp sampler2D;\\\\n#endif\\\\n"|g' \
+      ${PKG_BUILD}/yabause/src/core/video/opengl/compute_shader/include/vdp1_prog_compute.h \
+      ${PKG_BUILD}/yabause/src/core/video/opengl/common/src/rbg_compute.cpp 2>/dev/null || true
     # HAVE_CDROM=1 obrigatorio: bug upstream linka file_path.c que usa
     # string_to_lower() mas stdstring.c (que define) so e listado quando
     # HAVE_CDROM=1 (Makefile.common linha 169-180).
