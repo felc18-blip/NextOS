@@ -293,14 +293,18 @@ case ${EMULATOR} in
     # calls separadas (DEPTH + STENCIL) que GLES2 Lima aceita. flycast/
     # flycast2021 (64-bit cores) e morpheuscast_xtreme32 (32-bit core)
     # batem nesse enum no init do framebuffer e crasham GL: Invalid enum.
-    case "${CORE}" in
-      flycast|flycast2021)
-        export LD_PRELOAD=/usr/lib/libfb-shim.so
-      ;;
-      morpheuscast_xtreme32)
-        export LD_PRELOAD=/usr/lib32/libfb-shim.so
-      ;;
-    esac
+    # SO necessario em Amlogic-nxtos. Em Amlogic-no (Valhall GLES 3.2 nativo)
+    # o shim nem existe -> evita warning ld.so + LD_PRELOAD desnecessario.
+    if echo "${HW_DEVICE}" | grep -qE "Amlogic-nxtos"; then
+      case "${CORE}" in
+        flycast|flycast2021)
+          export LD_PRELOAD=/usr/lib/libfb-shim.so
+        ;;
+        morpheuscast_xtreme32)
+          export LD_PRELOAD=/usr/lib32/libfb-shim.so
+        ;;
+      esac
+    fi
 
     RUNTHIS='${EMUPERF} /usr/bin/${RABIN} -L /tmp/cores/${CORE}_libretro.so --config ${RETROARCH_TEMP_CONFIG} --appendconfig ${RETROARCH_APPEND_CONFIG} "${ROMNAME}"'
 
