@@ -75,7 +75,7 @@ case "${DEVICE}" in
     LIBRETRO_CORES+=" beetle-psx-lr beetle-saturn-lr bsnes-lr bsnes-hd-lr dolphin-lr geolith-lr flycast2021-lr uae4arm"
     PKG_RETROARCH+=" retropie-shaders"
     ;;
-  Amlogic-no|Amlogic-nxtos)
+  Amlogic-nxtos)
     # Amlogic S905W TV box (Mali-450 Utgard, 1GB RAM, GLES 2.0 only).
     # drastic-sa, duckstation-sa, daedalusx64-sa, mednafen — todos validados
     # rodando no NextOS-Elite-Edition (mesmo hardware S905W/Mali-450).
@@ -205,6 +205,12 @@ makeinstall_target() {
   case ${DEVICE} in
     SDM845|SM8250|SM8550|SM8650|S922X|RK3588)
       add_emu_core 3ds azahar azahar-sa true
+      add_es_system 3ds
+      ;;
+    Amlogic-no)
+      # X5M Valhall G310 GLES 3.2: panda3ds libretro (HLE 3DS) compila
+      # e roda. Sem azahar-sa (precisa Vulkan + qt6 nao disponivel).
+      add_emu_core 3ds retroarch panda3ds true
       add_es_system 3ds
       ;;
   esac
@@ -529,8 +535,10 @@ makeinstall_target() {
   # lighter-weight gpsp as the performance default and keep mGBA as an
   # accuracy alternative. Amlogic-nxtos (S905W Cortex-A53 1.2GHz) tem perf
   # similar/levemente menor — mesma escolha.
+  # Amlogic-no (S905X5M Cortex-A55 1.8GHz) aguenta mGBA full-speed e e 64-bit
+  # puro (sem gpsp 32-bit) — cai no default abaixo.
   case ${DEVICE} in
-    RK3326|Amlogic-no|Amlogic-nxtos)
+    RK3326|Amlogic-nxtos)
       add_emu_core gba retroarch gpsp true
       add_emu_core gba retroarch mgba false
       ;;
@@ -553,6 +561,9 @@ makeinstall_target() {
     SM8650)
       add_emu_core gba nanoboyadvance nanoboyadvance-sa false
       ;;
+    Amlogic-no)
+      add_emu_core gba nanoboyadvance nanoboyadvance-sa false
+      ;;
   esac
   case ${DEVICE} in
     H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
@@ -573,8 +584,12 @@ makeinstall_target() {
   add_emu_core gbah retroarch beetle_gba false
   add_emu_core gbah retroarch skyemu false
   case ${DEVICE} in
-    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-no|Amlogic-nxtos)
+    H700|RK3326|RK3399|RK3566|RK3588|SM8250|SM8550|SM8650|Amlogic-nxtos)
       add_emu_core gbah retroarch gpsp false
+      add_emu_core gbah mednafen gba false
+      ;;
+    Amlogic-no)
+      # Amlogic-no e 64-bit puro: sem gpsp 32-bit.
       add_emu_core gbah mednafen gba false
       ;;
     SM8650)
@@ -663,12 +678,15 @@ makeinstall_target() {
       install_script "Start Dolphin.sh"
       add_es_system gamecube
       ;;
-    RK3566|RK3588|S922X)
+    RK3566|RK3588|S922X|Amlogic-no)
+      # Amlogic-no (S905X5M Cortex-A55 1.8GHz + Mali-G310 Valhall + 4GB) roda
+      # dolphin-sa via wayland (build *) padrao do package). Performance limitada
+      # vs RK3588 mas viavel.
       add_emu_core gamecube dolphin dolphin-sa-gc true
       add_emu_core gamecube retroarch dolphin false
       add_es_system gamecube
       ;;
-    H700|RK3326|Amlogic-no|Amlogic-nxtos)
+    H700|RK3326|Amlogic-nxtos)
       # Amlogic-nxtos: S905W Mali-450 + 1GB — dolphin (qualquer) é
       # impossível. Não adicionar core nem es_system pra não confundir user.
       ;;
@@ -683,6 +701,10 @@ makeinstall_target() {
     RK3399|SDM845|SM8250|SM8550|SM8650)
       add_emu_core triforce dolphin dolphin-qt-gc true
       install_script "Start Dolphin.sh"
+      add_es_system triforce
+      ;;
+    Amlogic-no)
+      add_emu_core triforce dolphin dolphin-sa-gc true
       add_es_system triforce
       ;;
   esac
@@ -700,7 +722,9 @@ makeinstall_target() {
       add_es_system wii
       add_es_system wiiware
       ;;
-    RK3566|RK3588|S922X)
+    RK3566|RK3588|S922X|Amlogic-no)
+      # Amlogic-no (X5M Valhall G310 4GB) roda Wii via dolphin-sa-wii. Perf
+      # limitada mas viavel pra titulos leves.
       add_emu_core wii dolphin dolphin-sa-wii true
       add_emu_core wiiware dolphin dolphin-sa-wii true
       add_emu_core wii retroarch dolphin false
@@ -708,7 +732,7 @@ makeinstall_target() {
       add_es_system wii
       add_es_system wiiware
       ;;
-    H700|RK3326|Amlogic-no|Amlogic-nxtos)
+    H700|RK3326|Amlogic-nxtos)
       # Mesma razão do GameCube — Mali-450 não roda Wii.
       ;;
     *)
@@ -721,7 +745,7 @@ makeinstall_target() {
 
   ### Nintendo Wii U
   case ${DEVICE} in
-    SDM845|SM8250|SM8550|SM8650)
+    SDM845|SM8250|SM8550|SM8650|Amlogic-no)
       add_emu_core wiiu cemu cemu-sa true
       add_es_system wiiu
       install_script "Start CEMU.sh"
@@ -928,8 +952,10 @@ makeinstall_target() {
   add_emu_core n64 retroarch parallel_n64 false
   add_emu_core n64 mupen64plus mupen64plus-sa false
   case ${DEVICE} in
-    SDM845|SM8250|SM8550|Amlogic-no|Amlogic-nxtos)
+    SDM845|SM8250|SM8550|Amlogic-nxtos)
       # Amlogic-nxtos usa fork felc18-blip nextos-gles2 (Mali-450 nativo).
+      # Amlogic-no NAO entra: daedalusx64-sa e port ARM 32-bit, e o X5M Valhall
+      # nao tem blob Mali 32-bit r44p0 (nao renderiza). Usar mupen64plus-sa.
       add_emu_core n64 daedalusx64 daedalusx64-sa false
       install_script "Start DaedalusX64.sh"
       ;;
@@ -1091,12 +1117,19 @@ makeinstall_target() {
 
   ### Sony Playstation
   case ${DEVICE} in
-    H700|RK3326|Amlogic-no|Amlogic-nxtos)
+    H700|RK3326|Amlogic-nxtos)
       # S905W Cortex-A53 1.2GHz: pcsx_rearmed32 (lib32) é mais perf que o
       # core aarch64 nativo no JIT do PCSX-ReARMed pra ARM. Idêntico ao
       # RK3326 (Cortex-A35). EMUS_32BIT já inclui pcsx_rearmed-lr no nxtos.
       add_emu_core psx retroarch pcsx_rearmed32 true
       add_emu_core psx retroarch pcsx_rearmed false
+      ;;
+    Amlogic-no)
+      # Amlogic-no e 64-bit puro: pcsx_rearmed aarch64 (sem variante 32).
+      add_emu_core psx retroarch pcsx_rearmed true
+      add_emu_core psx retroarch beetle_psx false
+      add_emu_core psx mednafen psx false
+      add_emu_core psx duckstation duckstation-sa false
       ;;
     RK3399|RK3588)
       add_emu_core psx retroarch pcsx_rearmed true
@@ -1132,7 +1165,7 @@ makeinstall_target() {
 
   ### Sony Playstation 2
   case ${DEVICE} in
-    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X)
+    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X|Amlogic-no)
       add_emu_core ps2 aethersx2 aethersx2-sa true
       add_es_system ps2
       install_script "Start AetherSX2.sh"
@@ -1141,7 +1174,7 @@ makeinstall_target() {
 
   ### Sony Playstation 3
   case ${DEVICE} in
-    SDM845|SM8250|SM8550|SM8650)
+    SDM845|SM8250|SM8550|SM8650|Amlogic-no)
       add_emu_core ps3 rpcs3 rpcs3-sa true
       add_es_system ps3
       install_script "Start RPCS3.sh"
@@ -1270,12 +1303,17 @@ makeinstall_target() {
     S922X)
       add_emu_core saturn retroarch beetle_saturn false
       ;;
+    Amlogic-no)
+      add_emu_core saturn retroarch beetle_saturn false
+      add_emu_core saturn retroarch kronos false
+      add_emu_core saturn mednafen ss false
+      ;;
   esac
   add_es_system saturn
 
   ### Sega ST-V
   case ${DEVICE} in
-    RK3588|SM8250|SM8550|SM8650)
+    RK3588|SM8250|SM8550|SM8650|Amlogic-no)
       add_emu_core st-v mednafen ss true
       ;;
   esac
@@ -1293,7 +1331,7 @@ makeinstall_target() {
 
   ### Microsoft XBox
   case ${DEVICE} in
-    SDM845|SM8250|SM8550|SM8650)
+    SDM845|SM8250|SM8550|SM8650|Amlogic-no)
       add_emu_core xbox xemu xemu-sa true
       add_es_system xbox
       install_script "Start Xemu.sh"
@@ -1329,7 +1367,7 @@ makeinstall_target() {
   add_emu_core snes retroarch bsnes_mercury_balanced false
   add_emu_core snes retroarch bsnes_mercury_performance false
   case ${DEVICE} in
-    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X)
+    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X|Amlogic-no)
       add_emu_core snes retroarch bsnes false
       add_emu_core snes retroarch bsnes_hd_beta false
       ;;
@@ -1351,7 +1389,7 @@ makeinstall_target() {
   add_emu_core snes retroarch bsnes_mercury_balanced false
   add_emu_core snesh retroarch bsnes_mercury_performance false
   case ${DEVICE} in
-    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X)
+    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X|Amlogic-no)
       add_emu_core snesh retroarch bsnes false
       add_emu_core snesh retroarch bsnes_hd_beta false
       ;;
@@ -1373,7 +1411,7 @@ makeinstall_target() {
   add_emu_core snes retroarch bsnes_mercury_balanced false
   add_emu_core sfc retroarch bsnes_mercury_performance false
   case ${DEVICE} in
-    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X)
+    RK3399|RK3588|SDM845|SM8250|SM8550|SM8650|S922X|Amlogic-no)
       add_emu_core sfc retroarch bsnes false
       add_emu_core sfc retroarch bsnes_hd_beta false
       ;;
