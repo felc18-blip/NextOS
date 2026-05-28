@@ -185,6 +185,16 @@ ARCHR_JOYPAD="no"
 OPENGLES_SUPPORT="yes"
 PREFER_GLES="yes"
 
+# 2026-05-27: 64-bit PURO (igual CoreELEC upstream). Desliga toda a maquinaria
+# 32-bit (build arm + compat/lib32 + lib32-opengl-meson + box86/cores 32b).
+# Motivo: NÃO existe blob Mali Valhall 32-bit r44p0 pro S905X5M, então ports/
+# cores 32-bit não renderizam de jeito nenhum (parede de blob). O lib32-opengl-
+# meson ainda envenenava o sysroot 64-bit com blob 32-bit ARM (erros GLESv2/v1).
+# O build 64-bit NÃO depende do 32-bit: o dep "lib32" é condicional e a build arm
+# faz exit 0 quando off (scripts/build_distro). Override do ${ENABLE_32BIT-true}
+# do distribution (device options é sourced por último).
+ENABLE_32BIT="no"
+
 # 2026-05-27: catalogo completo de emuladores (vita3k, rpcs3, dolphin, azahar,
 # melonds, touchHLE...) deixou o /usr em ~5.0G. O default (4608 MiB) estourou na
 # criacao da imagem ext4 ("cannot write"). 6144 MiB (6GB) cabe os ~5.0G de
