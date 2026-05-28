@@ -103,26 +103,27 @@ case "${DEVICE}" in
   Amlogic-no)
     # Amlogic S905X5/X5M (s7d, Mali-G310 Valhall, GLES 3.2, 4GB RAM). KMSDRM-direto.
     # Mais capaz que o S905W (nxtos) — herda o set Amlogic + dolphin-sa (GLES3).
-    # box86 = ports x86 Linux (essencial); ENABLE_32BIT habilita o stack 32-bit ARM
-    # (box86 + retroarch32 + cores 32-bit) via virtual/arm, igual ao nxtos.
-    # box86 (essencial p/ ports x86 Linux) reaproveitado do build .arm do nxtos
-    # (binario 32-bit ARM, identico entre devices). daedalus/pcsx/desmume/gpsp
-    # 32-bit ficam pra depois (evita rebuild do stack .arm inteiro).
-    [ "${ENABLE_32BIT}" == "true" ] && EMUS_32BIT="box86"
+    # 2026-05-27: Amlogic-no e 64-bit PURO (ENABLE_32BIT=no no options do device).
+    # Sem stack 32-bit nenhum: nada de box86 / retroarch32 / cores 32-bit. Motivo:
+    # nao existe blob Mali Valhall 32-bit r44p0 pro S905X5M, entao qualquer coisa
+    # 32-bit nao renderiza (parede de blob). Os cores 32-bit (desmume-lr, gpsp-lr,
+    # morpheuscast-xtreme32-lr, ludicrousn64-xtreme32-lr, gametank32-lr) foram
+    # removidos da lista abaixo — todos tem equivalente 64-bit (melonds-sa, vbam-lr,
+    # flycast2021-lr, ludicrousn64-xtreme-lr, gametank-lr).
     PKG_DEPENDS_TARGET+=" common-shaders glsl-shaders"
     PKG_EMUS+=" box64 dolphin-sa drastic-sa duckstation-sa mednafen melonds-sa nanoboyadvance-sa portmaster scummvmsa yabasanshiro-sa \
                 biginstinct-sa bigpemu-sa hypseus kronos-sa touchhle-sa vita3k-sa minivmacsa \
                 aethersx2-sa cemu-sa duckstation-legacy-sa pcsx2-sa rpcs3-sa xemu-sa"
     LIBRETRO_CORES+=" flycast2021-lr geolith-lr uae4arm \
                       beetle-psx-lr beetle-saturn-lr boom3-lr bsnes-hd-lr bsnes-lr \
-                      desmume-lr dolphin-lr ecwolf-lr gpsp-lr kronos-lr mame2003-lr \
+                      dolphin-lr ecwolf-lr kronos-lr mame2003-lr \
                       panda3ds-lr play-lr prboom-lr same_cdi-lr tyrquake-lr \
                       vbam-lr vecx-lr vice-lr vircon32-lr virtualjaguar-lr \
                       vitaquake2-lr vitaquake3-lr wasm4-lr xmil-lr yabasanshiro-lr \
                       duckstation-lr mame2016-lr dosbox-lr dosbox-svn-lr \
-                      gametank-lr gametank32-lr geargrafx-lr gearlynx-lr \
-                      ludicrousn64-xtreme-lr ludicrousn64-xtreme32-lr \
-                      mame2003-midway-lr mame2003-xtreme-lr morpheuscast-xtreme32-lr \
+                      gametank-lr geargrafx-lr gearlynx-lr \
+                      ludicrousn64-xtreme-lr \
+                      mame2003-midway-lr mame2003-xtreme-lr \
                       2048-lr azahar-lr lrps2-lr ps2-lr"
     PKG_RETROARCH+=" retropie-shaders"
     ;;
@@ -300,6 +301,12 @@ makeinstall_target() {
       add_emu_core atomiswave retroarch flycast false
       add_emu_core atomiswave retroarch flycast2021 false
       add_emu_core atomiswave retroarch morpheuscast_xtreme32 false
+      ;;
+    Amlogic-no)
+      # 64-bit puro: morpheuscast_xtreme32 (core 32-bit) removido. DC via flycast.
+      add_emu_core atomiswave retroarch flycast true
+      add_emu_core atomiswave retroarch flycast2021 false
+      add_emu_core atomiswave flycast flycast-sa false
       ;;
     *)
       add_emu_core atomiswave retroarch flycast true
