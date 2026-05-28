@@ -842,7 +842,15 @@ function set_runahead() {
 }
 
 function set_audiolatency() {
-    add_setting "audiolatency" "audio_latency"
+    # Amlogic-no (kernel 5.15 sem CONFIG_SND_SEQUENCER): audio_latency < 64 trava
+    # retroarch no init ALSA. Clamp p/ minimo 64ms nesse device. Outros devices
+    # mantem o valor do ES sem alterar.
+    local LATENCY="$(game_setting audiolatency)"
+    if echo "${HW_DEVICE}" | grep -qE "Amlogic-no" && [ -n "${LATENCY}" ] && [ "${LATENCY}" -lt 64 ] 2>/dev/null; then
+        add_setting "none" "audio_latency" "64"
+    else
+        add_setting "audiolatency" "audio_latency"
+    fi
 }
 
 function set_analogsupport() {
