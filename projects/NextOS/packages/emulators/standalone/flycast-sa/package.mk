@@ -21,6 +21,15 @@ elif [ "${OPENGLES_SUPPORT}" = yes ]; then
   PKG_CMAKE_OPTS_TARGET+=" -DUSE_GLES=ON"
 fi
 
+# Amlogic-no (X5M Valhall G310): flycast bundla SDL2 interno em core/deps/SDL/
+# que e SDL2 vanilla, SEM o patch 0009-kmsdrm-xrgb8888-meson-drm-alpha-fix.
+# Esse patch troca GBM_FORMAT_ARGB8888 -> XRGB8888 (meson-drm plane primary
+# trata alpha=0 como transparente -> plane invisivel sem o fix). Forçar uso
+# do SDL2 do sistema (que ja tem o patch) via -DUSE_HOST_SDL=ON.
+if [ "${DEVICE}" = "Amlogic-no" ]; then
+  PKG_CMAKE_OPTS_TARGET+=" -DUSE_HOST_SDL=ON"
+fi
+
 if [ "${VULKAN_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" ${VULKAN}"
   PKG_CMAKE_OPTS_TARGET+=" -DUSE_VULKAN=ON"
