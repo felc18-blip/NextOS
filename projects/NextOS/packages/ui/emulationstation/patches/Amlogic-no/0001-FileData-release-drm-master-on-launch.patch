@@ -1,0 +1,52 @@
+diff --git a/es-app/src/FileData.cpp b/es-app/src/FileData.cpp
+index 96a2dd11..2bf67cfe 100644
+--- a/es-app/src/FileData.cpp
++++ b/es-app/src/FileData.cpp
+@@ -1,5 +1,6 @@
+ #include "FileData.h"
+ 
++#include <cstdlib>
+ #include "utils/FileSystemUtil.h"
+ #include "utils/StringUtil.h"
+ #include "utils/TimeUtil.h"
+@@ -715,8 +716,15 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
+ 	VolumeControl::getInstance()->deinit();
+ 
+ 	bool hideWindow = Settings::getInstance()->getBool("HideWindow");
+-	window->deinit(hideWindow);
+-	
++
++	// NextOS Amlogic-no: env EE_KMSDRM_RELEASE_DRM força deinit/init completo do
++	// renderer no launch/exit pra liberar o DRM master pro emulador (KMSDRM).
++	// Sem isso o SDL_Window do ES segura /dev/dri/card0 e emuladores libretro/GBM
++	// não conseguem o master -> tela preta. Em libMali fbdev a var não é setada.
++	const bool releaseDrm = (std::getenv("EE_KMSDRM_RELEASE_DRM") != nullptr);
++
++	window->deinit(hideWindow || releaseDrm);
++
+ 	const std::string rom = Utils::FileSystem::getEscapedPath(getPath());
+ 	const std::string basename = Utils::FileSystem::getStem(getPath());
+ 
+@@ -731,8 +739,10 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
+ 	mRunningGame = gameToUpdate;
+ 
+ 	ProcessStartInfo process(command);
+-	process.window = hideWindow ? NULL : window;
+-	
++	// NULL window evita ProcessStartInfo::run chamar renderSplashScreen() que
++	// recria o SDL_Window e RE-pega o DRM master, anulando o deinit acima.
++	process.window = (hideWindow || releaseDrm) ? NULL : window;
++
+ 	int exitCode = process.run();
+ 	if (exitCode != 0)
+ 		LOG(LogWarning) << "...launch terminated with nonzero exit code " << exitCode << "!";
+@@ -760,7 +770,8 @@ bool FileData::launchGame(Window* window, LaunchGameOptions options)
+ 		window->setCustomSplashScreen(gameToUpdate->getImagePath(), gameToUpdate->getName(), gameToUpdate);
+ 	}
+ 	else
+-		window->init(hideWindow);
++		// regrab DRM master ao reabrir a window (SDL recria e re-pega o master)
++		window->init(hideWindow || releaseDrm);
+ 
+ 	VolumeControl::getInstance()->init();
+ 	AudioManager::getInstance()->init();
