@@ -1,0 +1,100 @@
+{
+  "0_USB Gamepad_0300605b100800000100000010010000": {
+    "a": {
+      "id": 1,
+      "type": "button",
+      "value": 1
+    },
+    "b": {
+      "id": 2,
+      "type": "button",
+      "value": 1
+    },
+    "c": {
+      "id": 5,
+      "type": "button",
+      "value": 1
+    },
+    "x": {
+      "id": 0,
+      "type": "button",
+      "value": 1
+    },
+    "y": {
+      "id": 3,
+      "type": "button",
+      "value": 1
+    },
+    "z": {
+      "id": 4,
+      "type": "button",
+      "value": 1
+    },
+    "l": {
+      "id": 6,
+      "type": "button",
+      "value": 1
+    },
+    "r": {
+      "id": 7,
+      "type": "button",
+      "value": 1
+    },
+    "select": {
+      "id": 8,
+      "type": "button",
+      "value": 1
+    },
+    "start": {
+      "id": 9,
+      "type": "button",
+      "value": 1
+    },
+    "up": {
+      "id": 0,
+      "type": "hat",
+      "value": 1
+    },
+    "down": {
+      "id": 0,
+      "type": "hat",
+      "value": 4
+    },
+    "left": {
+      "id": 0,
+      "type": "hat",
+      "value": 8
+    },
+    "right": {
+      "id": 0,
+      "type": "hat",
+      "value": 2
+    },
+    "analogleft": {
+      "id": 4,
+      "type": "axis",
+      "value": 0
+    },
+    "analogright": {
+      "id": 5,
+      "type": "axis",
+      "value": 0
+    },
+    "analogx": {
+      "id": 0,
+      "type": "axis",
+      "value": 0
+    },
+    "analogy": {
+      "id": 1,
+      "type": "axis",
+      "value": 0
+    }
+  },
+  "player1": {
+    "DeviceID": 0,
+    "deviceGUID": "0300605b100800000100000010010000",
+    "deviceName": "USB Gamepad",
+    "padmode": 0
+  }
+}
