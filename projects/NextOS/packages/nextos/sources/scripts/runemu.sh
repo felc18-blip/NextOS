@@ -495,31 +495,7 @@ if [[ "${ROMNAME}" == *".sh" ]] && [ ! "${PLATFORM}" = "ports" ] && [ ! "${PLATF
         ret_error=$?
 else
         ${VERBOSE} && log $0 "Executing $(eval echo ${RUNTHIS})"
-        if echo "${HW_DEVICE}" | grep -qE "Amlogic-no" && [[ "${RUNTHIS}" == *"/tmp/cores/"* ]]; then
-                # Amlogic-no + LIBRETRO: o blob Mali Valhall (KMSDRM-direto) retem o
-                # scanout no processo ES e nao passa o CRTC pra um 2o processo
-                # (libretro core via retroarch) -> tela preta. Solucao proven: parar o
-                # essway antes do game (mata ES -> blob libera o scanout), rodar o game
-                # em CGROUP ISOLADO (systemd-run --scope, fora do cgroup do essway), e
-                # restart do essway no fim (ES volta pelo Restart=always).
-                log $0 "[drm-handoff] libretro Amlogic-no: parando essway p/ liberar DRM master do blob"
-                FULL_CMD=$(eval echo "${RUNTHIS}")
-                cat >/tmp/runemu-libretro-isolated.sh <<EOF
-#!/bin/sh
-exec >>${OUTPUT_LOG} 2>&1
-echo "[drm-handoff] systemctl stop essway"
-systemctl stop essway
-${FULL_CMD}
-EC=\$?
-echo "[drm-handoff] game saiu (ec=\$EC), systemctl start essway"
-systemctl reset-failed essway 2>/dev/null
-systemctl start essway
-exit \$EC
-EOF
-                chmod +x /tmp/runemu-libretro-isolated.sh
-                systemd-run --scope --quiet --collect /tmp/runemu-libretro-isolated.sh
-                ret_error=$?
-        elif echo "${HW_DEVICE}" | grep -qE "Amlogic-no"; then
+        if echo "${HW_DEVICE}" | grep -qE "Amlogic-no"; then
                 # Amlogic-no STANDALONE (nao-libretro: emus por-sistema): blob Valhall
                 # deadloca no EXIT liberando GL (threads em futex_wait, vcs=0) ->
                 # processo nao morre -> ES nao volta. Watchdog: SIGKILL na arvore se vcs
