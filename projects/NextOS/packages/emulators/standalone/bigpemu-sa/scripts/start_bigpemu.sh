@@ -49,7 +49,7 @@ elif echo ${HW_DEVICE} | grep -q "Amlogic-nxtos"; then
   # traduz desktop GL → GLES2) + Wayland video driver (sem isso SDL tenta
   # KMSDRM e bate com sway compositor). Validado 2026-05-23.
   export SDL_VIDEODRIVER=wayland
-  export SDL_AUDIODRIVER=pulseaudio
+  export SDL_AUDIODRIVER=alsa
   cd /usr/share/bigpemu
   # gptokeyb mode 1 com kill_mode trap Select+Start — bigpemu faz SDL grab
   # exclusivo do controle, input_sense daemon nao consegue ler eventos, entao

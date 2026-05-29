@@ -133,7 +133,7 @@ fluidsynth_service_stop() {
 set_SDL_audiodriver() {
 
   if [ ${RR_AUDIO_BACKEND} = "PulseAudio" ]; then
-    export SDL_AUDIODRIVER=pulseaudio
+    export SDL_AUDIODRIVER=alsa
   else
     export SDL_AUDIODRIVER=alsa
   fi

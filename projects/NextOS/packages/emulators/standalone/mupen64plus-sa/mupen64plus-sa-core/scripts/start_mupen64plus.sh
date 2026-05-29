@@ -305,7 +305,7 @@ echo ${SET_PARAMS}
 # SDL_AUDIO=pulseaudio pra negociar via pipewire-pulse em vez de ALSA busy.
 if [ "${HW_DEVICE}" = "Amlogic-nxtos" ]; then
     export SDL_VIDEODRIVER=wayland
-    export SDL_AUDIODRIVER=pulseaudio
+    export SDL_AUDIODRIVER=alsa
 fi
 
 ${EMUPERF} /usr/local/bin/mupen64plus${SIMPLESUFFIX} --configdir ${TMP} ${SET_PARAMS} "${TMP}/${ROM}"

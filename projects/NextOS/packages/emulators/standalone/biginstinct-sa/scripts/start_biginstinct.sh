@@ -3,7 +3,7 @@
 set_kill set "-9 biginstinct"
 if echo ${HW_DEVICE} | grep -q "Amlogic-nxtos"; then
   export SDL_VIDEODRIVER=wayland
-  export SDL_AUDIODRIVER=pulseaudio
+  export SDL_AUDIODRIVER=alsa
   cd /usr/bin/biginstinct
   # gptokeyb mode 1 Select+Start kill (igual bigpemu)
   if [ -x /usr/bin/gptokeyb ]; then

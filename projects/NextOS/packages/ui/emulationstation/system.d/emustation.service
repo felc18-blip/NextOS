@@ -9,7 +9,7 @@ StartLimitBurst=5
 [Service]
 Environment=XDG_RUNTIME_DIR=/var/run/0-runtime-dir
 Environment=HOME=/storage
-Environment=SDL_AUDIODRIVER=pulseaudio
+Environment=SDL_AUDIODRIVER=alsa
 EnvironmentFile=/etc/profile
 ExecStartPre=/usr/bin/es_settings
 ExecStart=/usr/bin/emulationstation --log-path /var/log --no-splash

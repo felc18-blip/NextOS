@@ -208,6 +208,6 @@ export MESA_GLSL_VERSION_OVERRIDE=330
 export QT_QPA_PLATFORM=wayland
 
 #Run Aethersx2 emulator
-export SDL_AUDIODRIVER=pulseaudio
+export SDL_AUDIODRIVER=alsa
 set_kill set "-9 aethersx2"
 ${EMUPERF} /usr/bin/@APPIMAGE@ -bigpicture -fullscreen "${1}"

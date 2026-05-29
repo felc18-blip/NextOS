@@ -59,7 +59,7 @@ FEATURES_CMDLINE=""
 # Amlogic-nxtos: PipeWire (pipewire-pulse) ocupa /dev/snd; mednafen ALSA bate
 # "Device or resource busy". Forcar SDL audio (negocia via pipewire-pulse).
 if [ "${HW_DEVICE}" = "Amlogic-nxtos" ]; then
-    export SDL_AUDIODRIVER=pulseaudio
+    export SDL_AUDIODRIVER=alsa
     FEATURES_CMDLINE+=" -sound.driver sdl"
 fi
 if [ "${CORES}" = "little" ]

@@ -6,7 +6,12 @@
 # Source predefined functions and variables
 . /etc/profile
 
-export SDL_AUDIODRIVER=pulseaudio
+# 2026-05-29: pulseaudio -> alsa. O bump pipewire 1.6.x quebrou a camada
+# pipewire-pulse (clientes pulse não conectam: "Could not connect to PulseAudio"
+# -> ES mudo). O pipewire NATIVO funciona, e o PCM ALSA "default" roteia pro
+# pipewire (via /usr/share/alsa/alsa.conf.d/99-pipewire-default.conf). Provado:
+# aplay -D default = OK. SDL do ES só tem backend pulse+alsa -> usar alsa.
+export SDL_AUDIODRIVER=alsa
 
 TZ=$(get_setting system.timezone)
 echo -n "TIMEZONE=${TZ}" > /storage/.cache/timezone
