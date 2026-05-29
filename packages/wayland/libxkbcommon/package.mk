@@ -4,7 +4,7 @@
 
 PKG_NAME="libxkbcommon"
 PKG_VERSION="1.13.1"
-PKG_SHA256="0427585a4d6ca17c9fc1ac4b539bf303348e9080af70c5ea402503bc370a9631"
+PKG_SHA256="aeb951964c2f7ecc08174cb5517962d157595e9e3f38fc4a130b91dc2f9fec18"
 PKG_LICENSE="MIT"
 PKG_SITE="https://xkbcommon.org"
 PKG_URL="https://github.com/xkbcommon/libxkbcommon/archive/refs/tags/xkbcommon-${PKG_VERSION}.tar.gz"
