@@ -4,10 +4,11 @@
 # Copyright (C) 2018-present Team CoreELEC (https://coreelec.org)
 
 PKG_NAME="busybox"
-PKG_VERSION="1.36.1"
+PKG_VERSION="1.38.0"
+PKG_SHA256="34f9ea6ff8636f2c9241153b9114eefa9e65674a45318ae1ef95bb5f31c53bb2"
 PKG_LICENSE="GPL"
 PKG_SITE="http://www.busybox.net"
-PKG_URL="http://busybox.net/downloads/${PKG_NAME}-${PKG_VERSION}.tar.bz2"
+PKG_URL="https://busybox.net/downloads/${PKG_NAME}-${PKG_VERSION}.tar.bz2"
 PKG_DEPENDS_HOST="gcc:host"
 PKG_DEPENDS_TARGET="toolchain busybox:host dosfstools e2fsprogs zip usbutils parted procps-ng gptfdisk libtirpc"
 PKG_DEPENDS_INIT="toolchain libc:init glibc:init libtirpc"
@@ -66,7 +67,10 @@ configure_host() {
     # set install dir
     sed -i -e "s|^CONFIG_PREFIX=.*$|CONFIG_PREFIX=\"${PKG_BUILD}/.install_host\"|" .config
 
-    make oldconfig
+    yes "" | make oldconfig
+
+  # NextOS: 'yes ""' alimenta enter pra novas opções (CONFIG_TIME64, FEATURE_VERSION,
+  # etc) que busybox 1.38.0 introduziu vs 1.36.1; sem isso oldconfig trava no first prompt
 }
 
 configure_target() {
@@ -92,7 +96,7 @@ configure_target() {
 
     LDFLAGS="${LDFLAGS} -fwhole-program"
 
-    make oldconfig
+    yes "" | make oldconfig
 }
 
 configure_init() {
@@ -107,7 +111,7 @@ configure_init() {
 
   LDFLAGS="${LDFLAGS} -fwhole-program"
 
-  make oldconfig
+  yes "" | make oldconfig
 }
 
 makeinstall_host() {
