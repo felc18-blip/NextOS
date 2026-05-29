@@ -4,6 +4,8 @@
 # Copyright (C) 2024-present NextOS (https://github.com/felc18-blip/NextOS)
 
 . /etc/profile
+export PIPEWIRE_RUNTIME_DIR=/run/pipewire
+export PIPEWIRE_LATENCY=8192/48000
 
 # Detect version of Dolphin
 DOLPHIN_CORE=$(echo "${3}"| sed "s#^/.*/##")
