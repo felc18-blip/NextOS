@@ -22,6 +22,11 @@ Environment=HOME=/storage
 # boot test de jogos. SDL_KMSDRM_VSYNC_DEFAULT=1 evita tearing no blob r44p0.
 Environment=EE_KMSDRM_RELEASE_DRM=1
 Environment=SDL_KMSDRM_VSYNC_DEFAULT=1
+# MALI_WAYLAND_AFBC=0: defensivo, caso ES inicie processo filho que tente
+# usar libMali via Wayland (ex: emulador standalone com SDL_VIDEODRIVER=wayland).
+# Sem isso, libmali aloca buffers AFBC rejeitados pelo plano primário do
+# meson-drm vendor -> pageflip -22. profile.d NÃO carrega em systemd unit.
+Environment=MALI_WAYLAND_AFBC=0
 EnvironmentFile=/etc/profile
 ExecStart=/usr/bin/start_es.sh
 WorkingDirectory=/storage
