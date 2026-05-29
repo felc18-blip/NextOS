@@ -13,6 +13,16 @@ case ${DEVICE} in
     PKG_VERSION="1.9"
     PKG_URL="https://github.com/swaywm/sway/archive/${PKG_VERSION}.zip"
   ;;
+  RK3326|RK3566|S922X|Amlogic-no)
+    # 2026-05-29 NextOS: pareia com wlroots 0.19.3-rk (fork ROCKNIX com hack
+    # mali_buffer_sharing). sway 1.12 exige wlroots >=0.20.0 mas o fork rk
+    # vai só até 0.19.3-rk. Sem isso o sway linka contra libwlroots-0.20.so
+    # que não existe no rootfs e crasha exit 127 ("cannot open shared object").
+    # Patches 1001/1002 aplicam limpos em 1.11 também (validado dry-run).
+    PKG_VERSION="1.11"
+    PKG_SHA256="034ec4519326d6af5275814700dde46e852c5174614109affe4c86b2fbee062a"
+    PKG_URL="https://github.com/swaywm/sway/archive/${PKG_VERSION}.tar.gz"
+  ;;
   *)
     # 2026-05-28 bump CoreELEC 89a6964f — sway 1.11 -> 1.12 (drop setuid patch).
     # Patches renomeados: sway-100.01-static-ipc-socket.patch -> 1001-...,

@@ -35,6 +35,15 @@ rm -f ${env_file}
 echo "WLR_DRM_DEVICES=/dev/dri/card${card_no}" >> ${env_file}
 echo "WLR_BACKENDS=drm,libinput" >> ${env_file}
 
+# Propagar vars do profile (090-ui_service etc.) pro env_file que o
+# sway.service consome via EnvironmentFile=. systemd não roda profile.d,
+# então sem isso WLR_DRM_NO_ATOMIC / WLR_NO_HARDWARE_CURSORS / MALI_*
+# definidos no /etc/profile não chegariam ao processo sway.
+for v in WLR_DRM_NO_ATOMIC WLR_NO_HARDWARE_CURSORS MALI_WAYLAND_AFBC; do
+  val=$(eval echo \$$v)
+  [ -n "$val" ] && echo "$v=$val" >> ${env_file}
+done
+
 # Scan connectors
 card=/sys/class/drm/card${card_no}
 connected_cons=()
