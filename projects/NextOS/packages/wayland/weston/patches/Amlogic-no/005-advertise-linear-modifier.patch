@@ -1,0 +1,36 @@
+From: NextOS <noreply@nextos>
+Date: 2026-05-29
+Subject: [PATCH] gl-renderer: anunciar DRM_FORMAT_MOD_LINEAR junto com MOD_INVALID
+
+Problema: Mali blob Valhall r44p0-wayland-drm-g310-dmaheap quando
+recebe MOD_INVALID (implicit) escolhe internamente AFBC com modifier
+exotic (0x8000000 + suffix) que Weston não consegue importar via
+EGL_EXT_image_dma_buf_import_modifiers. Resultado: SDL2/EGL apps
+(retroarch, ppsspp) criam EGL surface OK mas eglSwapBuffers nunca
+attaca buffer válido — tela preta apesar de Wayland protocol OK.
+
+Solução: também anunciar MOD_LINEAR (0) na lista de modifiers suportados
+do gl-renderer. App pode então pedir buffer linear explicitamente
+(SDL_VIDEODRIVER=wayland usa esse caminho); Mali aloca linear (formato
+universal), Weston importa via EGL_LINUX_DMA_BUF_EXT com mod=0 e
+apresenta normalmente.
+
+Necessário no Amlogic-no porque blob Mali não tem flag pra desativar
+AFBC implicit no path Wayland.
+
+--- a/libweston/renderer-gl/gl-renderer.c
++++ b/libweston/renderer-gl/gl-renderer.c
+@@ -3988,6 +3988,13 @@ gl_renderer_get_supported_formats(struct weston_compositor *ec,
+ 		/* Always add DRM_FORMAT_MOD_INVALID, as EGL implementations
+ 		 * support implicit modifiers. */
+ 		ret = weston_drm_format_add_modifier(fmt, DRM_FORMAT_MOD_INVALID);
++		if (ret < 0)
++			goto out;
++
++		/* NextOS Amlogic-no: também adicionar MOD_LINEAR (0) pra
++		 * apps com Mali blob conseguirem alocar buffer linear quando
++		 * implicit AFBC do Mali (com MOD_INVALID) não casa com Weston. */
++		ret = weston_drm_format_add_modifier(fmt, 0);
+ 		if (ret < 0)
+ 			goto out;
+

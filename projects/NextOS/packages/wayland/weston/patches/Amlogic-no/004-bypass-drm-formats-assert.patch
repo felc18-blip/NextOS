@@ -1,0 +1,39 @@
+From: NextOS <noreply@nextos>
+Date: 2026-05-28
+Subject: [PATCH] libweston/drm-formats: tolerar duplicatas vindas do blob Mali Valhall
+
+O blob libMali_g310_dmaheap.so (CoreELEC/opengl-meson r44p0) ao enumerar
+formatos DRM via EGL_EXT_image_dma_buf_import_modifiers reporta o mesmo
+DRM_FORMAT/modifier mais de uma vez para os planos OSD2/VIDEO do display
+engine vendor Amlogic (AMLOGIC_HDMITX21). Isso faz weston_drm_format_array_add_format
+abortar no assert da linha 131, quebrando o startup do Weston em qualquer
+dispositivo Amlogic-no (S905X5/X5M Valhall G310, S928X Valhall G57).
+
+Solução: substituir o assert por early-return silencioso. Duplicatas não
+são erro fatal — apenas idempotência: o formato já está na lista, não
+precisa ser adicionado de novo.
+
+Equivalente em source-level ao binary patch 8x NOP em 0x37fa4 de
+libweston-14.so.0 documentado em /tmp/weston-archr-test.tar.gz (memo
+project_amlogic_no_weston_runtime_test_2026_05_15).
+
+Aplicável apenas em Amlogic-no (Mali Valhall + blob CoreELEC/opengl-meson).
+Outros devices com Mesa+panfrost/panthor não precisam desse patch.
+
+--- a/libweston/drm-formats.c
++++ b/libweston/drm-formats.c
+@@ -127,8 +127,12 @@ weston_drm_format_array_add_format(struct weston_drm_format_array *formats,
+ {
+ 	struct weston_drm_format *fmt;
+
+-	/* We should not try to add repeated formats to an array. */
+-	assert(!weston_drm_format_array_find_format(formats, format));
++	/* NextOS Amlogic-no: blob libMali Valhall (CoreELEC opengl-meson r44p0)
++	 * enumera formatos duplicados via EGL_EXT_image_dma_buf_import_modifiers.
++	 * Em vez de abortar, retornar o formato existente (idempotente). */
++	fmt = weston_drm_format_array_find_format(formats, format);
++	if (fmt)
++		return fmt;
+
+ 	fmt = wl_array_add(&formats->arr, sizeof(*fmt));
+ 	if (!fmt) {
