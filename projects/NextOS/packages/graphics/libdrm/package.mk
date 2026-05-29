@@ -3,8 +3,12 @@
 # Copyright (C) 2009-2016 Stephan Raue (stephan@openelec.tv)
 # Copyright (C) 2018-present Team LibreELEC (https://libreelec.tv)
 
+# 2026-05-28 bump 2.4.128 -> 2.4.133 (wlroots 0.20.1 exige >= 2.4.129).
+# Mantém customizações NextOS: dep libdisplay-info, sed nos headers, install
+# modetest.
 PKG_NAME="libdrm"
-PKG_VERSION="2.4.128"
+PKG_VERSION="2.4.133"
+PKG_SHA256="fc68f9d0ba2ea63c9432a299e14fea09fad7a8a66e8039fcd7802ca59f77b4f5"
 PKG_LICENSE="GPL"
 PKG_SITE="http://dri.freedesktop.org"
 PKG_URL="http://dri.freedesktop.org/libdrm/libdrm-${PKG_VERSION}.tar.xz"
@@ -44,9 +48,9 @@ listcontains "${GRAPHIC_DRIVERS}" "etnaviv" &&
 post_makeinstall_target() {
   mkdir -p ${INSTALL}/usr/bin
     cp -a ${PKG_BUILD}/.${TARGET_NAME}/tests/modetest/modetest ${INSTALL}/usr/bin/
-    for header in xf86drm.h xf86drmMode.h
-    do
-      sed -i "s#<drm.h>#<drm/drm.h>#g" ${SYSROOT_PREFIX}/usr/include/${header}
-      sed -i "s#<drm_mode.h#<drm/drm_mode.h>#g" ${SYSROOT_PREFIX}/usr/include/${header}
-    done
+  # 2026-05-28 REMOVIDO sed que trocava <drm.h> -> <drm/drm.h> em xf86drm.h:
+  # com libdrm 2.4.133 instalando headers em /usr/include/libdrm/drm.h, o
+  # original <drm.h> resolve corretamente via -I/usr/include/libdrm/.
+  # Com o sed antigo, <drm/drm.h> ia pegar o KERNEL header (5.15.196) que
+  # nao tem drm_syncobj_eventfd, quebrando wlroots 0.20.1.
 }
