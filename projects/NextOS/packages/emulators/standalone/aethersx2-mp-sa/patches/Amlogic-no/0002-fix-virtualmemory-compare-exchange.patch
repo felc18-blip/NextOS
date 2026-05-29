@@ -1,0 +1,11 @@
+--- a/common/VirtualMemory.cpp	2026-05-28 14:05:11.000000000 -0300
++++ common/VirtualMemory.cpp	2026-05-28 15:06:59.641015074 -0300
+@@ -187,7 +187,7 @@
+ 	for (auto current = begin; current < end; current++)
+ 	{
+ 		bool expected = false;
+-		if (!current->compare_exchange_strong(expected, true), std::memory_order_relaxed)
++		if (!current->compare_exchange_strong(expected, true, std::memory_order_relaxed))
+ 		{
+ 			// This was already allocated!  Undo the things we've set until this point
+ 			while (--current >= begin)

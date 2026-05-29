@@ -1,0 +1,81 @@
+--- a/pcsx2/GS/GSVector.cpp	2026-05-28 15:07:37.443049577 -0300
++++ b/pcsx2/GS/GSVector.cpp	2026-05-28 15:37:46.075351695 -0300
+@@ -17,7 +17,7 @@
+ #include "GS.h"
+ #include "GSVector.h"
+ 
+-CONSTINIT const GSVector4i GSVector4i::m_xff[17] =
++/* CONSTINIT */ const GSVector4i GSVector4i::m_xff[17] =
+ {
+ 	cxpr(0x00000000, 0x00000000, 0x00000000, 0x00000000),
+ 	cxpr(0x000000ff, 0x00000000, 0x00000000, 0x00000000),
+@@ -38,7 +38,7 @@
+ 	cxpr(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff),
+ };
+ 
+-CONSTINIT const GSVector4i GSVector4i::m_x0f[17] =
++/* CONSTINIT */ const GSVector4i GSVector4i::m_x0f[17] =
+ {
+ 	cxpr(0x00000000, 0x00000000, 0x00000000, 0x00000000),
+ 	cxpr(0x0000000f, 0x00000000, 0x00000000, 0x00000000),
+@@ -59,32 +59,32 @@
+ 	cxpr(0x0f0f0f0f, 0x0f0f0f0f, 0x0f0f0f0f, 0x0f0f0f0f),
+ };
+ 
+-CONSTINIT const GSVector4 GSVector4::m_ps0123 = cxpr(0.0f, 1.0f, 2.0f, 3.0f);
+-CONSTINIT const GSVector4 GSVector4::m_ps4567 = cxpr(4.0f, 5.0f, 6.0f, 7.0f);
+-CONSTINIT const GSVector4 GSVector4::m_half = cxpr(0.5f);
+-CONSTINIT const GSVector4 GSVector4::m_one = cxpr(1.0f);
+-CONSTINIT const GSVector4 GSVector4::m_two = cxpr(2.0f);
+-CONSTINIT const GSVector4 GSVector4::m_four = cxpr(4.0f);
+-CONSTINIT const GSVector4 GSVector4::m_x4b000000 = cxpr(0x4b000000);
+-CONSTINIT const GSVector4 GSVector4::m_x4f800000 = cxpr(0x4f800000);
+-CONSTINIT const GSVector4 GSVector4::m_max = cxpr(FLT_MAX);
+-CONSTINIT const GSVector4 GSVector4::m_min = cxpr(FLT_MIN);
++/* CONSTINIT */ const GSVector4 GSVector4::m_ps0123 = cxpr(0.0f, 1.0f, 2.0f, 3.0f);
++/* CONSTINIT */ const GSVector4 GSVector4::m_ps4567 = cxpr(4.0f, 5.0f, 6.0f, 7.0f);
++/* CONSTINIT */ const GSVector4 GSVector4::m_half = cxpr(0.5f);
++/* CONSTINIT */ const GSVector4 GSVector4::m_one = cxpr(1.0f);
++/* CONSTINIT */ const GSVector4 GSVector4::m_two = cxpr(2.0f);
++/* CONSTINIT */ const GSVector4 GSVector4::m_four = cxpr(4.0f);
++/* CONSTINIT */ const GSVector4 GSVector4::m_x4b000000 = cxpr(0x4b000000);
++/* CONSTINIT */ const GSVector4 GSVector4::m_x4f800000 = cxpr(0x4f800000);
++/* CONSTINIT */ const GSVector4 GSVector4::m_max = cxpr(FLT_MAX);
++/* CONSTINIT */ const GSVector4 GSVector4::m_min = cxpr(FLT_MIN);
+ 
+ #if _M_SSE >= 0x500
+ 
+-CONSTINIT const GSVector8 GSVector8::m_half = cxpr(0.5f);
+-CONSTINIT const GSVector8 GSVector8::m_one = cxpr(1.0f);
+-CONSTINIT const GSVector8 GSVector8::m_x7fffffff = cxpr(0x7fffffff);
+-CONSTINIT const GSVector8 GSVector8::m_x80000000 = cxpr(0x80000000);
+-CONSTINIT const GSVector8 GSVector8::m_x4b000000 = cxpr(0x4b000000);
+-CONSTINIT const GSVector8 GSVector8::m_x4f800000 = cxpr(0x4f800000);
+-CONSTINIT const GSVector8 GSVector8::m_max = cxpr(FLT_MAX);
+-CONSTINIT const GSVector8 GSVector8::m_min = cxpr(FLT_MAX);
++/* CONSTINIT */ const GSVector8 GSVector8::m_half = cxpr(0.5f);
++/* CONSTINIT */ const GSVector8 GSVector8::m_one = cxpr(1.0f);
++/* CONSTINIT */ const GSVector8 GSVector8::m_x7fffffff = cxpr(0x7fffffff);
++/* CONSTINIT */ const GSVector8 GSVector8::m_x80000000 = cxpr(0x80000000);
++/* CONSTINIT */ const GSVector8 GSVector8::m_x4b000000 = cxpr(0x4b000000);
++/* CONSTINIT */ const GSVector8 GSVector8::m_x4f800000 = cxpr(0x4f800000);
++/* CONSTINIT */ const GSVector8 GSVector8::m_max = cxpr(FLT_MAX);
++/* CONSTINIT */ const GSVector8 GSVector8::m_min = cxpr(FLT_MAX);
+ 
+ #endif
+ 
+ #if _M_SSE >= 0x501
+-CONSTINIT const GSVector8i GSVector8i::m_xff[33] =
++/* CONSTINIT */ const GSVector8i GSVector8i::m_xff[33] =
+ {
+ 	cxpr(0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
+ 	cxpr(0x000000ff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
+@@ -121,7 +121,7 @@
+ 	cxpr(0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff),
+ };
+ 
+-CONSTINIT const GSVector8i GSVector8i::m_x0f[33] =
++/* CONSTINIT */ const GSVector8i GSVector8i::m_x0f[33] =
+ {
+ 	cxpr(0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000),
+ 	cxpr(0x0000000f, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000),

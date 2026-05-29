@@ -1,0 +1,874 @@
+--- a/pcsx2/CMakeLists.txt	2026-05-28 15:07:37.440031434 -0300
++++ b/pcsx2/CMakeLists.txt	2026-05-28 15:43:27.335832427 -0300
+@@ -432,28 +432,28 @@
+ 	USB/deviceproxy.cpp
+ 	USB/configuration.cpp
+ 	USB/device_init.cpp
+-	USB/qemu-usb/glib.cpp
+-	USB/qemu-usb/vl.cpp
+-	USB/qemu-usb/iov.cpp
+-	USB/qemu-usb/desc.cpp
+-	USB/qemu-usb/core.cpp
+-	USB/qemu-usb/bus.cpp
+-	USB/qemu-usb/usb-ohci.cpp
+-	USB/qemu-usb/hid.cpp
+-	USB/qemu-usb/input-keymap-qcode-to-qnum.cpp
+-	USB/usb-msd/usb-msd.cpp
+-	USB/usb-pad/usb-pad.cpp
+-	USB/usb-pad/usb-pad-ff.cpp
+-	USB/usb-pad/lg/lg_ff.cpp
+-	USB/usb-pad/usb-seamic.cpp
+-	USB/usb-mic/usb-mic-singstar.cpp
+-	USB/usb-mic/usb-mic-logitech.cpp
+-	USB/usb-mic/usb-headset.cpp
+-	../3rdparty/jpgd/jpgd.cpp
+-	../3rdparty/jpgd/jpge.cpp
+-	USB/usb-eyetoy/jo_mpeg.cpp
+-	USB/usb-eyetoy/usb-eyetoy-webcam.cpp
+-	USB/usb-hid/usb-hid.cpp
++# MISSING: 	USB/qemu-usb/glib.cpp
++# MISSING: 	USB/qemu-usb/vl.cpp
++# MISSING: 	USB/qemu-usb/iov.cpp
++# MISSING: 	USB/qemu-usb/desc.cpp
++# MISSING: 	USB/qemu-usb/core.cpp
++# MISSING: 	USB/qemu-usb/bus.cpp
++# MISSING: 	USB/qemu-usb/usb-ohci.cpp
++# MISSING: # MISSING: 	USB/qemu-usb/hid.cpp
++# MISSING: 	USB/qemu-usb/input-keymap-qcode-to-qnum.cpp
++# MISSING: 	USB/usb-msd/usb-msd.cpp
++# MISSING: 	USB/usb-pad/usb-pad.cpp
++# MISSING: 	USB/usb-pad/usb-pad-ff.cpp
++# MISSING: # MISSING: 	USB/usb-pad/lg/lg_ff.cpp
++# MISSING: 	USB/usb-pad/usb-seamic.cpp
++# MISSING: 	USB/usb-mic/usb-mic-singstar.cpp
++# MISSING: 	USB/usb-mic/usb-mic-logitech.cpp
++# MISSING: 	USB/usb-mic/usb-headset.cpp
++# MISSING: 	../3rdparty/jpgd/jpgd.cpp
++# MISSING: 	../3rdparty/jpgd/jpge.cpp
++# MISSING: 	USB/usb-eyetoy/jo_mpeg.cpp
++# MISSING: 	USB/usb-eyetoy/usb-eyetoy-webcam.cpp
++# MISSING: 	USB/usb-hid/usb-hid.cpp
+ 	USB/shared/shared_usb.cpp
+ 	USB/shared/inifile_usb.cpp
+ 	USB/shared/ringbuffer.cpp
+@@ -469,43 +469,43 @@
+ 	USB/helpers.h
+ 	USB/readerwriterqueue/readerwriterqueue.h
+ 	USB/readerwriterqueue/atomicops.h
+-	USB/qemu-usb/glib.h
+-	USB/qemu-usb/vl.h
+-	USB/qemu-usb/qusb.h
+-	USB/qemu-usb/USBinternal.h
+-	USB/qemu-usb/desc.h
+-	USB/qemu-usb/iov.h
+-	USB/qemu-usb/queue.h
+-	USB/qemu-usb/hid.h
+-	USB/qemu-usb/input-keymap.h
+-	USB/usb-msd/usb-msd.h
+-	USB/usb-pad/usb-pad.h
+-	USB/usb-pad/padproxy.h
+-	USB/usb-pad/lg/lg_ff.h
+-	USB/usb-mic/audio.h
+-	USB/usb-mic/audiodev.h
+-	USB/usb-mic/audiodeviceproxy.h
+-	USB/usb-mic/usb-mic-singstar.h
+-	USB/usb-mic/usb-headset.h
+-	USB/usb-mic/audiodev-noop.h
+-	../3rdparty/jpgd/jpgd.h
+-	../3rdparty/jpgd/jpge.h
+-	USB/usb-eyetoy/jo_mpeg.h
+-	USB/usb-eyetoy/videodeviceproxy.h
+-	USB/usb-eyetoy/videodev.h
+-	USB/usb-eyetoy/usb-eyetoy-webcam.h
+-	USB/usb-eyetoy/ov519.h
+-	USB/usb-hid/hidproxy.h
+-	USB/usb-hid/usb-hid.h
+-	USB/usb-hid/noop.h
++# MISSING: 	USB/qemu-usb/glib.h
++# MISSING: 	USB/qemu-usb/vl.h
++# MISSING: 	USB/qemu-usb/qusb.h
++# MISSING: 	USB/qemu-usb/USBinternal.h
++# MISSING: 	USB/qemu-usb/desc.h
++# MISSING: 	USB/qemu-usb/iov.h
++# MISSING: 	USB/qemu-usb/queue.h
++# MISSING: # MISSING: 	USB/qemu-usb/hid.h
++# MISSING: 	USB/qemu-usb/input-keymap.h
++# MISSING: 	USB/usb-msd/usb-msd.h
++# MISSING: 	USB/usb-pad/usb-pad.h
++# MISSING: 	USB/usb-pad/padproxy.h
++# MISSING: # MISSING: 	USB/usb-pad/lg/lg_ff.h
++# MISSING: 	USB/usb-mic/audio.h
++# MISSING: 	USB/usb-mic/audiodev.h
++# MISSING: 	USB/usb-mic/audiodeviceproxy.h
++# MISSING: 	USB/usb-mic/usb-mic-singstar.h
++# MISSING: 	USB/usb-mic/usb-headset.h
++# MISSING: 	USB/usb-mic/audiodev-noop.h
++# MISSING: 	../3rdparty/jpgd/jpgd.h
++# MISSING: 	../3rdparty/jpgd/jpge.h
++# MISSING: 	USB/usb-eyetoy/jo_mpeg.h
++# MISSING: 	USB/usb-eyetoy/videodeviceproxy.h
++# MISSING: 	USB/usb-eyetoy/videodev.h
++# MISSING: 	USB/usb-eyetoy/usb-eyetoy-webcam.h
++# MISSING: 	USB/usb-eyetoy/ov519.h
++# MISSING: 	USB/usb-hid/hidproxy.h
++# MISSING: 	USB/usb-hid/usb-hid.h
++# MISSING: # MISSING: 	USB/usb-hid/noop.h
+ 	USB/shared/shared_usb.h
+ 	USB/shared/inifile_usb.h
+ 	USB/shared/ringbuffer.h
+ 	)
+ 
+ if(TARGET PulseAudio::PulseAudio)
+-	list(APPEND pcsx2USBSources USB/usb-mic/audiodev-pulse.cpp)
+-	list(APPEND pcsx2USBHeaders USB/usb-mic/audiodev-pulse.h)
++# MISSING: 	list(APPEND pcsx2USBSources USB/usb-mic/audiodev-pulse.cpp)
++# MISSING: 	list(APPEND pcsx2USBHeaders USB/usb-mic/audiodev-pulse.h)
+ endif()
+ 
+ if(WIN32 AND NOT PCSX2_CORE)
+@@ -541,7 +541,7 @@
+ 		PAD/Windows/InputManager.h
+ 		PAD/Windows/KeyboardQueue.h
+ 		PAD/Windows/PADRawInput.h
+-		PAD/Windows/resource_pad.h
++# MISSING: 		PAD/Windows/resource_pad.h
+ 		PAD/Windows/Tooltips.h
+ 		PAD/Windows/usb.h
+ 		PAD/Windows/VKey.h
+@@ -578,10 +578,10 @@
+ 		PAD/Linux/KeyStatus.cpp
+ 		PAD/Linux/PAD.cpp
+ 		PAD/Linux/state_management.cpp
+-		PAD/Linux/wx_dialog/dialog.cpp
+-		PAD/Linux/wx_dialog/opPanel.cpp
+-		PAD/Linux/wx_dialog/GamepadConfiguration.cpp
+-		PAD/Linux/wx_dialog/JoystickConfiguration.cpp
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/dialog.cpp
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/opPanel.cpp
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/GamepadConfiguration.cpp
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/JoystickConfiguration.cpp
+ 		PAD/Linux/Config.cpp
+ 	)
+ 
+@@ -597,33 +597,33 @@
+ 		PAD/Linux/KeyStatus.h
+ 		PAD/Linux/PAD.h
+ 		PAD/Linux/state_management.h
+-		PAD/Linux/wx_dialog/opPanel.h
+-		PAD/Linux/wx_dialog/GamepadConfiguration.h
+-		PAD/Linux/wx_dialog/JoystickConfiguration.h
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/opPanel.h
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/GamepadConfiguration.h
++# WX_DIALOG_DISABLED 		PAD/Linux/wx_dialog/JoystickConfiguration.h
+ 		# images
+-		${PADImgHeader}/analog.h
+-		${PADImgHeader}/circle.h
+-		${PADImgHeader}/cross.h
+-		${PADImgHeader}/dp_bottom.h
+-		${PADImgHeader}/dp_left.h
+-		${PADImgHeader}/dp_right.h
+-		${PADImgHeader}/dp_up.h
+-		${PADImgHeader}/dualshock2.h
+-		${PADImgHeader}/joystick_cursor.h
+-		${PADImgHeader}/l1.h
+-		${PADImgHeader}/r1.h
+-		${PADImgHeader}/l2.h
+-		${PADImgHeader}/r2.h
+-		${PADImgHeader}/l3.h
+-		${PADImgHeader}/r3.h
+-		${PADImgHeader}/select.h
+-		${PADImgHeader}/square.h
+-		${PADImgHeader}/start.h
+-		${PADImgHeader}/triangle.h
+-		${PADImgHeader}/arrow_up.h
+-		${PADImgHeader}/arrow_bottom.h
+-		${PADImgHeader}/arrow_left.h
+-		${PADImgHeader}/arrow_right.h
++# MISSING: 		${PADImgHeader}/analog.h
++# MISSING: 		${PADImgHeader}/circle.h
++# MISSING: 		${PADImgHeader}/cross.h
++# MISSING: 		${PADImgHeader}/dp_bottom.h
++# MISSING: 		${PADImgHeader}/dp_left.h
++# MISSING: 		${PADImgHeader}/dp_right.h
++# MISSING: 		${PADImgHeader}/dp_up.h
++# MISSING: 		${PADImgHeader}/dualshock2.h
++# MISSING: 		${PADImgHeader}/joystick_cursor.h
++# MISSING: 		${PADImgHeader}/l1.h
++# MISSING: 		${PADImgHeader}/r1.h
++# MISSING: 		${PADImgHeader}/l2.h
++# MISSING: 		${PADImgHeader}/r2.h
++# MISSING: 		${PADImgHeader}/l3.h
++# MISSING: 		${PADImgHeader}/r3.h
++# MISSING: 		${PADImgHeader}/select.h
++# MISSING: 		${PADImgHeader}/square.h
++# MISSING: 		${PADImgHeader}/start.h
++# MISSING: 		${PADImgHeader}/triangle.h
++# MISSING: 		${PADImgHeader}/arrow_up.h
++# MISSING: 		${PADImgHeader}/arrow_bottom.h
++# MISSING: 		${PADImgHeader}/arrow_left.h
++# MISSING: 		${PADImgHeader}/arrow_right.h
+ 	)
+ else()
+ 	# Host PAD
+@@ -687,20 +687,20 @@
+ 	GS/Renderers/SW/GSSetupPrimCodeGenerator.cpp
+ 	GS/Renderers/SW/GSTextureCacheSW.cpp
+ 	GS/Renderers/SW/GSTextureSW.cpp
+-	GS/Renderers/OpenGL/GLLoader.cpp
+-	GS/Renderers/OpenGL/GLState.cpp
+-	GS/Renderers/OpenGL/GSDeviceOGL.cpp
+-	GS/Renderers/OpenGL/GSRendererOGL.cpp
+-	GS/Renderers/OpenGL/GSShaderOGL.cpp
+-	GS/Renderers/OpenGL/GSTextureCacheOGL.cpp
+-	GS/Renderers/OpenGL/GSTextureOGL.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GLLoader.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GLState.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSDeviceOGL.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSRendererOGL.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSShaderOGL.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSTextureCacheOGL.cpp
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSTextureOGL.cpp
+ 	GS/Window/GSSetting.cpp
+ 	)
+ 
+ set(pcsx2GSx86Sources
+-	GS/Renderers/SW/GSDrawScanlineCodeGenerator.all.cpp
++# MISSING: 	GS/Renderers/SW/GSDrawScanlineCodeGenerator.all.cpp
+ 	GS/Renderers/SW/GSNewCodeGenerator.cpp
+-	GS/Renderers/SW/GSSetupPrimCodeGenerator.all.cpp
++# MISSING: 	GS/Renderers/SW/GSSetupPrimCodeGenerator.all.cpp
+ 	)
+ 
+ # GS headers
+@@ -748,25 +748,25 @@
+ 	GS/Renderers/HW/GSTextureCache.h
+ 	GS/Renderers/HW/GSVertexHW.h
+ 	GS/Renderers/SW/GSDrawScanlineCodeGenerator.h
+-	GS/Renderers/SW/GSDrawScanlineCodeGenerator.all.h
++# MISSING: 	GS/Renderers/SW/GSDrawScanlineCodeGenerator.all.h
+ 	GS/Renderers/SW/GSDrawScanline.h
+ 	GS/Renderers/SW/GSNewCodeGenerator.h
+ 	GS/Renderers/SW/GSRasterizer.h
+ 	GS/Renderers/SW/GSRendererSW.h
+ 	GS/Renderers/SW/GSScanlineEnvironment.h
+ 	GS/Renderers/SW/GSSetupPrimCodeGenerator.h
+-	GS/Renderers/SW/GSSetupPrimCodeGenerator.all.h
++# MISSING: 	GS/Renderers/SW/GSSetupPrimCodeGenerator.all.h
+ 	GS/Renderers/SW/GSTextureCacheSW.h
+ 	GS/Renderers/SW/GSTextureSW.h
+ 	GS/Renderers/SW/GSVertexSW.h
+-	GS/Renderers/OpenGL/GLLoader.h
+-	GS/Renderers/OpenGL/GLState.h
+-	GS/Renderers/OpenGL/GSDeviceOGL.h
+-	GS/Renderers/OpenGL/GSRendererOGL.h
+-	GS/Renderers/OpenGL/GSShaderOGL.h
+-	GS/Renderers/OpenGL/GSTextureCacheOGL.h
+-	GS/Renderers/OpenGL/GSTextureOGL.h
+-	GS/Renderers/OpenGL/GSUniformBufferOGL.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GLLoader.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GLState.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSDeviceOGL.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSRendererOGL.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSShaderOGL.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSTextureCacheOGL.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSTextureOGL.h
++# OGL_DISABLED 	GS/Renderers/OpenGL/GSUniformBufferOGL.h
+ 	GS/Window/GSCaptureDlg.h
+ 	GS/Window/GSDialog.h
+ 	GS/Window/GSSetting.h
+@@ -786,7 +786,7 @@
+ 		SPU2/Windows/CfgHelpers.cpp
+ 		SPU2/Windows/Config.cpp
+ 		SPU2/Windows/ConfigDebug.cpp
+-		SPU2/Windows/ConfigSoundTouch.cpp
++# MISSING: 		SPU2/Windows/ConfigSoundTouch.cpp
+ 		SPU2/Windows/dsp.cpp
+ 		SPU2/Windows/RealtimeDebugger.cpp
+ 		SPU2/Windows/SndOut_XAudio2.cpp
+@@ -801,8 +801,8 @@
+ 
+ 	list(APPEND pcsx2DEV9Sources
+ 		DEV9/Win32/DEV9WinConfig.cpp
+-		DEV9/Win32/pcap_io_win32.cpp
+-		DEV9/Win32/tap-win32.cpp
++# MISSING: 		DEV9/Win32/pcap_io_win32.cpp
++# MISSING: 		DEV9/Win32/tap-win32.cpp
+ 	)
+ 	list(APPEND pcsx2DEV9Headers
+ 		DEV9/Win32/pcap_io_win32_funcs.h
+@@ -810,34 +810,34 @@
+ 	)
+ 
+ 	list(APPEND pcsx2USBSources
+-		USB/qemu-usb/input-keymap-win32-to-qcode.cpp
++# MISSING: 		USB/qemu-usb/input-keymap-win32-to-qcode.cpp
+ 		USB/shared/hidapi.cpp
+ 		USB/shared/rawinput_usb.cpp
+-		USB/usb-eyetoy/api_init_win32_eyetoy.cpp
+-		USB/usb-eyetoy/cam-windows.cpp
+-		USB/usb-hid/api_init_win32_hid.cpp
+-		USB/usb-hid/raw/rawinput.cpp
+-		USB/usb-mic/api_init_win32_mic.cpp
+-		USB/usb-mic/audiodev-wasapi.cpp
+-		USB/usb-msd/usb-msd-win32.cpp
+-		USB/usb-pad/api_init_win32_pad.cpp
+-		USB/usb-pad/dx/dinput-config.cpp
+-		USB/usb-pad/dx/dinput.cpp
+-		USB/usb-pad/dx/usb-pad-dx.cpp
+-		USB/usb-pad/raw/raw-config.cpp
+-		USB/usb-pad/raw/usb-pad-raw.cpp
++# MISSING: 		USB/usb-eyetoy/api_init_win32_eyetoy.cpp
++# MISSING: 		USB/usb-eyetoy/cam-windows.cpp
++# MISSING: # MISSING: 		USB/usb-hid/api_init_win32_hid.cpp
++# MISSING: 		USB/usb-hid/raw/rawinput.cpp
++# MISSING: 		USB/usb-mic/api_init_win32_mic.cpp
++# MISSING: 		USB/usb-mic/audiodev-wasapi.cpp
++# MISSING: 		USB/usb-msd/usb-msd-win32.cpp
++# MISSING: # MISSING: 		USB/usb-pad/api_init_win32_pad.cpp
++# MISSING: 		USB/usb-pad/dx/dinput-config.cpp
++# MISSING: 		USB/usb-pad/dx/dinput.cpp
++# MISSING: 		USB/usb-pad/dx/usb-pad-dx.cpp
++# MISSING: 		USB/usb-pad/raw/raw-config.cpp
++# MISSING: 		USB/usb-pad/raw/usb-pad-raw.cpp
+ 		USB/Win32/Config_usb.cpp
+ 	)
+ 	list(APPEND pcsx2USBHeaders
+-		USB/qemu-usb/input-keymap-win32-to-qcode.h
++# MISSING: 		USB/qemu-usb/input-keymap-win32-to-qcode.h
+ 		USB/shared/rawinput_usb.h
+-		USB/usb-eyetoy/cam-windows.h
+-		USB/usb-mic/audiodev-wasapi.h
+-		USB/usb-pad/dx/dx.h
+-		USB/usb-pad/dx/usb-pad-dx.h
+-		USB/usb-pad/dx/versionproxy.h
+-		USB/usb-pad/raw/raw-config-res.h
+-		USB/usb-pad/raw/usb-pad-raw.h
++# MISSING: 		USB/usb-eyetoy/cam-windows.h
++# MISSING: 		USB/usb-mic/audiodev-wasapi.h
++# MISSING: # MISSING: 		USB/usb-pad/dx/dx.h
++# MISSING: 		USB/usb-pad/dx/usb-pad-dx.h
++# MISSING: 		USB/usb-pad/dx/versionproxy.h
++# MISSING: 		USB/usb-pad/raw/raw-config-res.h
++# MISSING: 		USB/usb-pad/raw/usb-pad-raw.h
+ 		USB/Win32/Config_usb.h
+ 		USB/Win32/resource_usb.h
+ 	)
+@@ -884,36 +884,36 @@
+ 
+ 	list(APPEND pcsx2USBSources
+ 		USB/linux/util.cpp
+-		USB/qemu-usb/input-keymap-linux-to-qcode.cpp
+-		USB/usb-eyetoy/api_init_linux.cpp
+-		USB/usb-eyetoy/cam-linux.cpp
+-		USB/usb-hid/api_init_linux.cpp
+-		USB/usb-hid/evdev/evdev-gtk.cpp
+-		USB/usb-mic/api_init_linux.cpp
+-		USB/usb-msd/usb-msd-gtk.cpp
+-		USB/usb-pad/api_init_linux.cpp
+-		USB/usb-pad/evdev/evdev-ff.cpp
+-		USB/usb-pad/evdev/evdev-gtk.cpp
+-		USB/usb-pad/evdev/evdev.cpp
+-		USB/usb-pad/evdev/shared-gtk.cpp
++# MISSING: 		USB/qemu-usb/input-keymap-linux-to-qcode.cpp
++# MISSING: # MISSING: 		USB/usb-eyetoy/api_init_linux.cpp
++# MISSING: 		USB/usb-eyetoy/cam-linux.cpp
++# MISSING: # MISSING: 		USB/usb-hid/api_init_linux.cpp
++# MISSING: 		USB/usb-hid/evdev/evdev-gtk.cpp
++# MISSING: # MISSING: 		USB/usb-mic/api_init_linux.cpp
++# MISSING: 		USB/usb-msd/usb-msd-gtk.cpp
++# MISSING: # MISSING: 		USB/usb-pad/api_init_linux.cpp
++# MISSING: 		USB/usb-pad/evdev/evdev-ff.cpp
++# MISSING: 		USB/usb-pad/evdev/evdev-gtk.cpp
++# MISSING: 		USB/usb-pad/evdev/evdev.cpp
++# MISSING: 		USB/usb-pad/evdev/shared-gtk.cpp
+ 	)
+ 	list(APPEND pcsx2USBHeaders
+ 		USB/linux/actualfile.h
+ 		USB/linux/ini.h
+ 		USB/linux/util.h
+-		USB/qemu-usb/input-keymap-linux-to-qcode.h
+-		USB/usb-eyetoy/cam-linux.h
+-		USB/usb-hid/evdev/evdev.cpp
+-		USB/usb-hid/evdev/evdev.h
+-		USB/usb-pad/evdev/evdev-ff.h
+-		USB/usb-pad/evdev/evdev.h
+-		USB/usb-pad/evdev/shared.h
++# MISSING: 		USB/qemu-usb/input-keymap-linux-to-qcode.h
++# MISSING: 		USB/usb-eyetoy/cam-linux.h
++# MISSING: 		USB/usb-hid/evdev/evdev.cpp
++# MISSING: 		USB/usb-hid/evdev/evdev.h
++# MISSING: 		USB/usb-pad/evdev/evdev-ff.h
++# MISSING: 		USB/usb-pad/evdev/evdev.h
++# MISSING: 		USB/usb-pad/evdev/shared.h
+ 	)
+ 
+ 	list(APPEND pcsx2USBSources
+ 		USB/icon_buzz_24.cpp
+-		USB/linux/config-gtk.cpp
+-		USB/linux/config.cpp
++# MISSING: 		USB/linux/config-gtk.cpp
++# MISSING: 		USB/linux/config.cpp
+ 	)
+ 	list(APPEND pcsx2USBHeaders
+ 		USB/gtk.h
+@@ -972,158 +972,158 @@
+ 
+ # Frontend sources
+ set(pcsx2FrontendSources
+-	Frontend/ImGuiManager.cpp
+-	Frontend/ImGuiManager.cpp
+-	Frontend/imgui_impl_vulkan.cpp
+-	Frontend/OpenGLHostDisplay.cpp
+-	Frontend/VulkanHostDisplay.cpp
++# MISSING: 	Frontend/ImGuiManager.cpp
++# MISSING: 	Frontend/ImGuiManager.cpp
++# MISSING: 	Frontend/imgui_impl_vulkan.cpp
++# MISSING: 	Frontend/OpenGLHostDisplay.cpp
++# MISSING: 	Frontend/VulkanHostDisplay.cpp
+ 	HostDisplay.cpp
+ 	HostSettings.cpp
+ )
+ 
+ # Frontend headers
+ set(pcsx2FrontendHeaders
+-	Frontend/ImGuiManager.h
+-	Frontend/imgui_impl_vulkan.h
+-	Frontend/OpenGLHostDisplay.h
+-	Frontend/VulkanHostDisplay.h
++# MISSING: 	Frontend/ImGuiManager.h
++# MISSING: 	Frontend/imgui_impl_vulkan.h
++# MISSING: 	Frontend/OpenGLHostDisplay.h
++# MISSING: 	Frontend/VulkanHostDisplay.h
+ 	HostDisplay.h
+ )
+ 
+ if(PCSX2_CORE)
+ 	list(APPEND pcsx2FrontendSources
+-		Frontend/GameList.cpp
+-		Frontend/INISettingsInterface.cpp
+-		Frontend/LayeredSettingsInterface.cpp
+-		VMManager.cpp
++# MISSING: 		Frontend/GameList.cpp
++# MISSING: 		Frontend/INISettingsInterface.cpp
++# MISSING: 		Frontend/LayeredSettingsInterface.cpp
++# MISSING: 		VMManager.cpp
+ 	)
+ 	list(APPEND pcsx2FrontendHeaders
+-		Frontend/GameList.h
+-		Frontend/INISettingsInterface.h
+-		Frontend/LayeredSettingsInterface.h
++# MISSING: 		Frontend/GameList.h
++# MISSING: 		Frontend/INISettingsInterface.h
++# MISSING: 		Frontend/LayeredSettingsInterface.h
+ 		VMManager.h)
+ endif()
+ 
+ 
+ # gui sources
+ set(pcsx2GuiSources
+-	gui/AppAssert.cpp
+-	gui/AppConfig.cpp
+-	gui/AppCoreThread.cpp
+-	gui/AppEventSources.cpp
+-	gui/AppHost.cpp
+-	gui/AppUserMode.cpp
+-	gui/AppInit.cpp
+-	gui/AppMain.cpp
+-	gui/AppRes.cpp
+-	gui/CheckedStaticBox.cpp
+-	gui/ConsoleLogger.cpp
+-	gui/Dialogs/AboutBoxDialog.cpp
+-	gui/Dialogs/GSDumpDialog.cpp
+-	gui/Dialogs/AssertionDialog.cpp
+-	gui/Dialogs/BaseConfigurationDialog.cpp
+-	gui/Dialogs/ConfirmationDialogs.cpp
+-	gui/Dialogs/ConvertMemoryCardDialog.cpp
+-	gui/Dialogs/CreateMemoryCardDialog.cpp
+-	gui/Dialogs/FirstTimeWizard.cpp
+-	gui/Dialogs/ImportSettingsDialog.cpp
+-	gui/Dialogs/LogOptionsDialog.cpp
+-	gui/Dialogs/McdConfigDialog.cpp
+-	gui/Dialogs/PickUserModeDialog.cpp
+-	gui/Dialogs/SysConfigDialog.cpp
+-	gui/Dialogs/IPCDialog.cpp
+-	gui/Debugger/BreakpointWindow.cpp
+-	gui/Debugger/CtrlDisassemblyView.cpp
+-	gui/Debugger/CtrlRegisterList.cpp
+-	gui/Debugger/CtrlMemView.cpp
+-	gui/Debugger/CtrlMemSearch.cpp
+-	gui/Debugger/DebuggerLists.cpp
+-	gui/Debugger/DisassemblyDialog.cpp
+-	gui/Debugger/DebugEvents.cpp
+-	gui/DriveList.cpp
+-	gui/ExecutorThread.cpp
+-	gui/FrameForGS.cpp
+-	gui/GlobalCommands.cpp
+-	gui/i18n.cpp
+-	gui/IsoDropTarget.cpp
+-	gui/MainFrame.cpp
+-	gui/MainMenuClicks.cpp
+-	gui/MessageBoxes.cpp
+-	gui/MSWstuff.cpp
+-	gui/Panels/BaseApplicableConfigPanel.cpp
+-	gui/Panels/BiosSelectorPanel.cpp
+-	gui/Panels/CpuPanel.cpp
+-	gui/Panels/DirPickerPanel.cpp
+-	gui/Panels/GameFixesPanel.cpp
+-	gui/Panels/GSWindowPanel.cpp
+-	gui/Panels/LogOptionsPanels.cpp
+-	gui/Panels/MemoryCardListPanel.cpp
+-	gui/Panels/MemoryCardListView.cpp
+-	gui/Panels/MiscPanelStuff.cpp
+-	gui/Panels/PathsPanel.cpp
+-	gui/Panels/SpeedhacksPanel.cpp
+-	gui/Panels/VideoPanel.cpp
+-	gui/pxCheckBox.cpp
+-	gui/pxRadioPanel.cpp
+-	gui/pxStaticText.cpp
+-	gui/pxWindowTextWriter.cpp
+-	gui/RecentIsoList.cpp
+-	gui/Saveslots.cpp
+-	gui/SysState.cpp
+-	gui/ThreadingDialogs.cpp
+-	gui/UpdateUI.cpp
+-	gui/wxAppWithHelpers.cpp
+-	gui/wxGuiTools.cpp
+-	gui/wxHelpers.cpp
+-	gui/wxSettingsInterface.cpp
++# MISSING: 	gui/AppAssert.cpp
++# MISSING: 	gui/AppConfig.cpp
++# MISSING: 	gui/AppCoreThread.cpp
++# MISSING: 	gui/AppEventSources.cpp
++# MISSING: 	gui/AppHost.cpp
++# MISSING: 	gui/AppUserMode.cpp
++# MISSING: 	gui/AppInit.cpp
++# MISSING: 	gui/AppMain.cpp
++# MISSING: 	gui/AppRes.cpp
++# MISSING: 	gui/CheckedStaticBox.cpp
++# MISSING: 	gui/ConsoleLogger.cpp
++# MISSING: 	gui/Dialogs/AboutBoxDialog.cpp
++# MISSING: 	gui/Dialogs/GSDumpDialog.cpp
++# MISSING: 	gui/Dialogs/AssertionDialog.cpp
++# MISSING: 	gui/Dialogs/BaseConfigurationDialog.cpp
++# MISSING: 	gui/Dialogs/ConfirmationDialogs.cpp
++# MISSING: 	gui/Dialogs/ConvertMemoryCardDialog.cpp
++# MISSING: 	gui/Dialogs/CreateMemoryCardDialog.cpp
++# MISSING: 	gui/Dialogs/FirstTimeWizard.cpp
++# MISSING: 	gui/Dialogs/ImportSettingsDialog.cpp
++# MISSING: 	gui/Dialogs/LogOptionsDialog.cpp
++# MISSING: 	gui/Dialogs/McdConfigDialog.cpp
++# MISSING: 	gui/Dialogs/PickUserModeDialog.cpp
++# MISSING: 	gui/Dialogs/SysConfigDialog.cpp
++# MISSING: 	gui/Dialogs/IPCDialog.cpp
++# MISSING: 	gui/Debugger/BreakpointWindow.cpp
++# MISSING: 	gui/Debugger/CtrlDisassemblyView.cpp
++# MISSING: 	gui/Debugger/CtrlRegisterList.cpp
++# MISSING: 	gui/Debugger/CtrlMemView.cpp
++# MISSING: 	gui/Debugger/CtrlMemSearch.cpp
++# MISSING: 	gui/Debugger/DebuggerLists.cpp
++# MISSING: 	gui/Debugger/DisassemblyDialog.cpp
++# MISSING: 	gui/Debugger/DebugEvents.cpp
++# MISSING: 	gui/DriveList.cpp
++# MISSING: 	gui/ExecutorThread.cpp
++# MISSING: 	gui/FrameForGS.cpp
++# MISSING: 	gui/GlobalCommands.cpp
++# MISSING: 	gui/i18n.cpp
++# MISSING: 	gui/IsoDropTarget.cpp
++# MISSING: 	gui/MainFrame.cpp
++# MISSING: 	gui/MainMenuClicks.cpp
++# MISSING: 	gui/MessageBoxes.cpp
++# MISSING: # MISSING: 	gui/MSWstuff.cpp
++# MISSING: 	gui/Panels/BaseApplicableConfigPanel.cpp
++# MISSING: 	gui/Panels/BiosSelectorPanel.cpp
++# MISSING: 	gui/Panels/CpuPanel.cpp
++# MISSING: 	gui/Panels/DirPickerPanel.cpp
++# MISSING: 	gui/Panels/GameFixesPanel.cpp
++# MISSING: 	gui/Panels/GSWindowPanel.cpp
++# MISSING: 	gui/Panels/LogOptionsPanels.cpp
++# MISSING: 	gui/Panels/MemoryCardListPanel.cpp
++# MISSING: 	gui/Panels/MemoryCardListView.cpp
++# MISSING: # MISSING: 	gui/Panels/MiscPanelStuff.cpp
++# MISSING: 	gui/Panels/PathsPanel.cpp
++# MISSING: 	gui/Panels/SpeedhacksPanel.cpp
++# MISSING: 	gui/Panels/VideoPanel.cpp
++# MISSING: 	gui/pxCheckBox.cpp
++# MISSING: 	gui/pxRadioPanel.cpp
++# MISSING: 	gui/pxStaticText.cpp
++# MISSING: 	gui/pxWindowTextWriter.cpp
++# MISSING: 	gui/RecentIsoList.cpp
++# MISSING: 	gui/Saveslots.cpp
++# MISSING: 	gui/SysState.cpp
++# MISSING: 	gui/ThreadingDialogs.cpp
++# MISSING: 	gui/UpdateUI.cpp
++# MISSING: 	gui/wxAppWithHelpers.cpp
++# MISSING: 	gui/wxGuiTools.cpp
++# MISSING: 	gui/wxHelpers.cpp
++# MISSING: 	gui/wxSettingsInterface.cpp
+ 	)
+ 
+ # gui headers
+ set(pcsx2GuiHeaders
+-	gui/AppAccelerators.h
+-	gui/AppCommon.h
+-	gui/AppConfig.h
+-	gui/AppCoreThread.h
+-	gui/AppEventListeners.h
+-	gui/AppHost.h
+-	gui/AppForwardDefs.h
+-	gui/App.h
+-	gui/ApplyState.h
+-	gui/AppSaveStates.h
+-	gui/CheckedStaticBox.h
+-	gui/ConsoleLogger.h
+-	gui/Debugger/BreakpointWindow.h
+-	gui/Debugger/CtrlDisassemblyView.h
+-	gui/Debugger/CtrlMemView.h
+-	gui/Debugger/CtrlMemSearch.h
+-	gui/Debugger/CtrlRegisterList.h
+-	gui/Debugger/DebugEvents.h
+-	gui/Debugger/DebuggerLists.h
+-	gui/Debugger/DisassemblyDialog.h
+-	gui/Dialogs/BaseConfigurationDialog.inl
+-	gui/Dialogs/ConfigurationDialog.h
+-	gui/Dialogs/LogOptionsDialog.h
+-	gui/Dialogs/ModalPopups.h
+-	gui/DriveList.h
+-	gui/GSFrame.h
++# MISSING: 	gui/AppAccelerators.h
++# MISSING: 	gui/AppCommon.h
++# MISSING: 	gui/AppConfig.h
++# MISSING: 	gui/AppCoreThread.h
++# MISSING: 	gui/AppEventListeners.h
++# MISSING: 	gui/AppHost.h
++# MISSING: 	gui/AppForwardDefs.h
++# MISSING: 	gui/App.h
++# MISSING: 	gui/ApplyState.h
++# MISSING: 	gui/AppSaveStates.h
++# MISSING: 	gui/CheckedStaticBox.h
++# MISSING: 	gui/ConsoleLogger.h
++# MISSING: 	gui/Debugger/BreakpointWindow.h
++# MISSING: 	gui/Debugger/CtrlDisassemblyView.h
++# MISSING: 	gui/Debugger/CtrlMemView.h
++# MISSING: 	gui/Debugger/CtrlMemSearch.h
++# MISSING: 	gui/Debugger/CtrlRegisterList.h
++# MISSING: 	gui/Debugger/DebugEvents.h
++# MISSING: 	gui/Debugger/DebuggerLists.h
++# MISSING: 	gui/Debugger/DisassemblyDialog.h
++# MISSING: 	gui/Dialogs/BaseConfigurationDialog.inl
++# MISSING: 	gui/Dialogs/ConfigurationDialog.h
++# MISSING: 	gui/Dialogs/LogOptionsDialog.h
++# MISSING: 	gui/Dialogs/ModalPopups.h
++# MISSING: 	gui/DriveList.h
++# MISSING: 	gui/GSFrame.h
+ 	gui/i18n.h
+-	gui/IsoDropTarget.h
+-	gui/MainFrame.h
+-	gui/MSWstuff.h
+-	gui/Panels/ConfigurationPanels.h
+-	gui/Panels/LogOptionsPanels.h
+-	gui/Panels/MemoryCardPanels.h
+-	gui/pxCheckBox.h
+-	gui/pxEvents.h
+-	gui/pxEventThread.h
+-	gui/pxRadioPanel.h
+-	gui/pxStaticText.h
+-	gui/RecentIsoList.h
+-	gui/Saveslots.h
+-	gui/ThreadingDialogs.h
+-	gui/ThreadingDialogs.cpp
+-	gui/wxGuiTools.h
+-	gui/wxSettingsInterface.h
++# MISSING: 	gui/IsoDropTarget.h
++# MISSING: 	gui/MainFrame.h
++# MISSING: # MISSING: 	gui/MSWstuff.h
++# MISSING: 	gui/Panels/ConfigurationPanels.h
++# MISSING: 	gui/Panels/LogOptionsPanels.h
++# MISSING: 	gui/Panels/MemoryCardPanels.h
++# MISSING: 	gui/pxCheckBox.h
++# MISSING: 	gui/pxEvents.h
++# MISSING: 	gui/pxEventThread.h
++# MISSING: 	gui/pxRadioPanel.h
++# MISSING: 	gui/pxStaticText.h
++# MISSING: 	gui/RecentIsoList.h
++# MISSING: 	gui/Saveslots.h
++# MISSING: 	gui/ThreadingDialogs.h
++# MISSING: 	gui/ThreadingDialogs.cpp
++# MISSING: 	gui/wxGuiTools.h
++# MISSING: 	gui/wxSettingsInterface.h
+ 	)
+ 
+ # Warning: the declaration of the .h are mandatory in case of resources files. It will ensure the creation
+@@ -1132,21 +1132,21 @@
+ set(res_bin "${CMAKE_BINARY_DIR}/pcsx2/gui/Resources")
+ set(res_src "${CMAKE_SOURCE_DIR}/pcsx2/gui/Resources")
+ set(pcsx2GuiResources
+-	${res_bin}/AppIcon16.h
+-	${res_bin}/AppIcon32.h
+-	${res_bin}/AppIcon64.h
+-	${res_bin}/BackgroundLogo.h
+-	${res_bin}/ButtonIcon_Camera.h
+-	${res_bin}/ConfigIcon_Cpu.h
+-	${res_bin}/ConfigIcon_Gamefixes.h
+-	${res_bin}/ConfigIcon_MemoryCard.h
+-	${res_bin}/ConfigIcon_Paths.h
+-	${res_bin}/ConfigIcon_Speedhacks.h
+-	${res_bin}/ConfigIcon_Video.h
+-	${res_bin}/Logo.h
+-	${res_bin}/NoIcon.h
+-	${res_bin}/Breakpoint_Active.h
+-	${res_bin}/Breakpoint_Inactive.h
++# MISSING: 	${res_bin}/AppIcon16.h
++# MISSING: 	${res_bin}/AppIcon32.h
++# MISSING: 	${res_bin}/AppIcon64.h
++# MISSING: # MISSING: 	${res_bin}/BackgroundLogo.h
++# MISSING: 	${res_bin}/ButtonIcon_Camera.h
++# MISSING: 	${res_bin}/ConfigIcon_Cpu.h
++# MISSING: 	${res_bin}/ConfigIcon_Gamefixes.h
++# MISSING: 	${res_bin}/ConfigIcon_MemoryCard.h
++# MISSING: 	${res_bin}/ConfigIcon_Paths.h
++# MISSING: 	${res_bin}/ConfigIcon_Speedhacks.h
++# MISSING: 	${res_bin}/ConfigIcon_Video.h
++# MISSING: 	${res_bin}/Logo.h
++# MISSING: 	${res_bin}/NoIcon.h
++# MISSING: 	${res_bin}/Breakpoint_Active.h
++# MISSING: 	${res_bin}/Breakpoint_Inactive.h
+ 	)
+ 
+ # IPU sources
+@@ -1240,28 +1240,28 @@
+ set(rec_src "Recording")
+ set(rec_vp_src "${rec_src}/VirtualPad")
+ set(pcsx2RecordingSources
+-	${rec_src}/InputRecording.cpp
+-	${rec_src}/InputRecordingControls.cpp
+-	${rec_src}/InputRecordingFile.cpp
+-	${rec_src}/NewRecordingFrame.cpp
+-	${rec_src}/PadData.cpp
+-	${rec_src}/Utilities/InputRecordingLogger.cpp
+-	${rec_vp_src}/VirtualPad.cpp
+-	${rec_vp_src}/VirtualPadData.cpp
+-	${rec_vp_src}/VirtualPadResources.cpp
++# MISSING: 	${rec_src}/InputRecording.cpp
++# MISSING: 	${rec_src}/InputRecordingControls.cpp
++# MISSING: 	${rec_src}/InputRecordingFile.cpp
++# MISSING: 	${rec_src}/NewRecordingFrame.cpp
++# MISSING: 	${rec_src}/PadData.cpp
++# MISSING: 	${rec_src}/Utilities/InputRecordingLogger.cpp
++# MISSING: 	${rec_vp_src}/VirtualPad.cpp
++# MISSING: # MISSING: 	${rec_vp_src}/VirtualPadData.cpp
++# MISSING: 	${rec_vp_src}/VirtualPadResources.cpp
+ )
+ 
+ # Recording headers
+ set(pcsx2RecordingHeaders
+-	${rec_src}/InputRecording.h
+-	${rec_src}/InputRecordingControls.h
+-	${rec_src}/InputRecordingFile.h
+-	${rec_src}/NewRecordingFrame.h
+-	${rec_src}/PadData.h
+-	${rec_src}/Utilities/InputRecordingLogger.h
+-	${rec_vp_src}/VirtualPad.h
+-	${rec_vp_src}/VirtualPadData.h
+-	${rec_vp_src}/VirtualPadResources.h
++# MISSING: 	${rec_src}/InputRecording.h
++# MISSING: 	${rec_src}/InputRecordingControls.h
++# MISSING: 	${rec_src}/InputRecordingFile.h
++# MISSING: 	${rec_src}/NewRecordingFrame.h
++# MISSING: 	${rec_src}/PadData.h
++# MISSING: 	${rec_src}/Utilities/InputRecordingLogger.h
++# MISSING: 	${rec_vp_src}/VirtualPad.h
++# MISSING: # MISSING: 	${rec_vp_src}/VirtualPadData.h
++# MISSING: 	${rec_vp_src}/VirtualPadResources.h
+ )
+ 
+ # Warning: the declaration of the .h are mandatory in case of resources files. It will ensure the creation
+@@ -1269,25 +1269,25 @@
+ # Recording - VirtualPad resources headers
+ set(res_rec_vp_src "${CMAKE_SOURCE_DIR}/pcsx2/Recording/VirtualPad/img")
+ set(pcsx2RecordingVirtualPadResources
+-	${res_rec_vp_src}/circlePressed.h
+-	${res_rec_vp_src}/controllerFull.h
+-	${res_rec_vp_src}/controllerHalf.h
+-	${res_rec_vp_src}/controllerThreeQuarters.h
+-	${res_rec_vp_src}/crossPressed.h
+-	${res_rec_vp_src}/downPressed.h
+-	${res_rec_vp_src}/l1Pressed.h
+-	${res_rec_vp_src}/l2Pressed.h
+-	${res_rec_vp_src}/l3Pressed.h
+-	${res_rec_vp_src}/leftPressed.h
+-	${res_rec_vp_src}/r1Pressed.h
+-	${res_rec_vp_src}/r2Pressed.h
+-	${res_rec_vp_src}/r3Pressed.h
+-	${res_rec_vp_src}/rightPressed.h
+-	${res_rec_vp_src}/selectPressed.h
+-	${res_rec_vp_src}/squarePressed.h
+-	${res_rec_vp_src}/startPressed.h
+-	${res_rec_vp_src}/trianglePressed.h
+-	${res_rec_vp_src}/upPressed.h
++# MISSING: 	${res_rec_vp_src}/circlePressed.h
++# MISSING: 	${res_rec_vp_src}/controllerFull.h
++# MISSING: 	${res_rec_vp_src}/controllerHalf.h
++# MISSING: 	${res_rec_vp_src}/controllerThreeQuarters.h
++# MISSING: 	${res_rec_vp_src}/crossPressed.h
++# MISSING: 	${res_rec_vp_src}/downPressed.h
++# MISSING: 	${res_rec_vp_src}/l1Pressed.h
++# MISSING: 	${res_rec_vp_src}/l2Pressed.h
++# MISSING: 	${res_rec_vp_src}/l3Pressed.h
++# MISSING: 	${res_rec_vp_src}/leftPressed.h
++# MISSING: 	${res_rec_vp_src}/r1Pressed.h
++# MISSING: 	${res_rec_vp_src}/r2Pressed.h
++# MISSING: 	${res_rec_vp_src}/r3Pressed.h
++# MISSING: 	${res_rec_vp_src}/rightPressed.h
++# MISSING: 	${res_rec_vp_src}/selectPressed.h
++# MISSING: 	${res_rec_vp_src}/squarePressed.h
++# MISSING: 	${res_rec_vp_src}/startPressed.h
++# MISSING: 	${res_rec_vp_src}/trianglePressed.h
++# MISSING: 	${res_rec_vp_src}/upPressed.h
+ )
+ 
+ # System sources
+@@ -1346,16 +1346,16 @@
+ 	x86/ir5900tables.cpp
+ 	x86/ix86-32/iCore-32.cpp
+ 	x86/ix86-32/iR5900-32.cpp
+-	x86/ix86-32/iR5900Arit.cpp
+-	x86/ix86-32/iR5900AritImm.cpp
+-	x86/ix86-32/iR5900Branch.cpp
+-	x86/ix86-32/iR5900Jump.cpp
+-	x86/ix86-32/iR5900LoadStore.cpp
+-	x86/ix86-32/iR5900Move.cpp
+-	x86/ix86-32/iR5900MultDiv.cpp
+-	x86/ix86-32/iR5900Shift.cpp
+-	x86/ix86-32/iR5900Templates.cpp
+-	x86/ix86-32/recVTLB.cpp
++# MISSING: 	x86/ix86-32/iR5900Arit.cpp
++# MISSING: 	x86/ix86-32/iR5900AritImm.cpp
++# MISSING: 	x86/ix86-32/iR5900Branch.cpp
++# MISSING: 	x86/ix86-32/iR5900Jump.cpp
++# MISSING: 	x86/ix86-32/iR5900LoadStore.cpp
++# MISSING: 	x86/ix86-32/iR5900Move.cpp
++# MISSING: 	x86/ix86-32/iR5900MultDiv.cpp
++# MISSING: 	x86/ix86-32/iR5900Shift.cpp
++# MISSING: 	x86/ix86-32/iR5900Templates.cpp
++# MISSING: 	x86/ix86-32/recVTLB.cpp
+ 	x86/newVif_Dynarec.cpp
+ 	x86/newVif_Unpack.cpp
+ 	x86/newVif_UnpackSSE.cpp
+@@ -1539,7 +1539,7 @@
+ 	simpleini
+ 	wxWidgets::all
+ 	ZLIB::ZLIB
+-	PkgConfig::SOUNDTOUCH
++	
+ 	PkgConfig::SAMPLERATE
+ 	PNG::PNG
+ 	LibLZMA::LibLZMA
+@@ -1669,7 +1669,7 @@
+ 	get_target_property(PCSX2_SOURCES PCSX2 SOURCES)
+ 	foreach(source IN LISTS PCSX2_SOURCES)
+ 		if("${source}" MATCHES "\\.(inl|h)$")
+-			set_source_files_properties("${source}" PROPERTIES XCODE_EXPLICIT_FILE_TYPE sourcecode.cpp.h)
++# MISSING: 			set_source_files_properties("${source}" PROPERTIES XCODE_EXPLICIT_FILE_TYPE sourcecode.cpp.h)
+ 		endif()
+ 	endforeach()
+ endif()

@@ -7,7 +7,7 @@ PKG_ARCH="aarch64"
 PKG_LICENSE="LGPL"
 PKG_SITE="https://github.com/RetroGFX/UnofficialOSAddOns"
 PKG_URL="${PKG_SITE}/raw/main/aethersx2-sa-${PKG_VERSION}.AppImage"
-PKG_DEPENDS_TARGET="toolchain qt5 libgpg-error fuse2"
+PKG_DEPENDS_TARGET="toolchain libgpg-error fuse2"
 PKG_LONGDESC="Arm PS2 Emulator appimage"
 PKG_TOOLCHAIN="manual"
 

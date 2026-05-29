@@ -1,0 +1,14 @@
+--- a/pcsx2/GS/GS_types.h	2026-05-28 15:07:37.443049577 -0300
++++ b/pcsx2/GS/GS_types.h	2026-05-28 15:41:32.169303128 -0300
+@@ -97,9 +97,9 @@
+ #endif
+ 
+ #ifdef __cpp_constinit
+-	#define CONSTINIT constinit
++	#define CONSTINIT /* removed for ARM64 NEON constexpr issue */
+ #elif __has_attribute(require_constant_initialization)
+-	#define CONSTINIT __attribute__((require_constant_initialization))
++	#define CONSTINIT /* removed for ARM64 NEON constexpr issue */
+ #else
+ 	#define CONSTINIT
+ #endif

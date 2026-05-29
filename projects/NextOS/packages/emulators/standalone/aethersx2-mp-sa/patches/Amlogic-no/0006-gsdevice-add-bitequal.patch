@@ -1,0 +1,14 @@
+--- a/pcsx2/GS/Renderers/Common/GSDevice.h	2026-05-28 15:07:37.444371946 -0300
++++ b/pcsx2/GS/Renderers/Common/GSDevice.h	2026-05-28 15:44:28.250646389 -0300
+@@ -15,6 +15,11 @@
+ 
+ #pragma once
+ 
++#include <cstring>
++template<typename T>
++static inline bool BitEqual(const T& a, const T& b) { return memcmp(&a, &b, sizeof(T)) == 0; }
++
++
+ #include "common/WindowInfo.h"
+ #include "GSFastList.h"
+ #include "GSTexture.h"
