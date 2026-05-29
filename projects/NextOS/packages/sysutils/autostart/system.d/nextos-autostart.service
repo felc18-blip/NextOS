@@ -1,6 +1,9 @@
 [Unit]
 Description=NextOS user autostart script
-Before=emustation.service weston.service
+# NextOS 2026-05-29: removido `weston.service` do Before — criava ordering cycle
+# (weston WantedBy=graphical.target + autostart After=graphical.target + Before
+# weston). systemd quebrava deletando weston OU essway.service do boot.
+Before=emustation.service
 After=network.target graphical.target userconfig.service
 
 [Service]
