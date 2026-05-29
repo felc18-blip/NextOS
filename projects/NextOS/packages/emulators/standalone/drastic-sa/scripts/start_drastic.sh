@@ -94,9 +94,56 @@ fi
 
 $GPTOKEYB "drastic" -c "drastic.gptk" &
 # Fix actual touch inputs by replacing touch->mouse translation and add hw mic support
-export LD_PRELOAD="/usr/lib/libdrastouch.so"
 export SDL_TOUCH_MOUSE_EVENTS="0"
 export DSHOOK_MIC_THRESH="${MICTHRESH}"
-./drastic "$1"
+
+# Amlogic-no (X5M Valhall G310 blob): KMSDRM retem scanout enquanto ES/pipewire
+# vivos -> "Could not restore CRTC" + tela branca. libdrastouch.so do template
+# piora (tela branca em SDL2 nativo 2.32.10). Padrao proven (commit b021a17):
+# escapar cgroup essway via systemd-run --scope + stop essway+pipewire + envs
+# SDL_VIDEO_FULLSCREEN (drastic abre janela 800x480 sem isso = tela branca).
+# Confirmado pelo Felipe 2026-05-28 via ES com som+controles+exit limpo.
+# Receita: nextos s905x5/11-DRASTIC-SA-RECEITA.md.
+if [ "${HW_DEVICE}" = "Amlogic-no" ]; then
+        ROM="$1"
+        cat > /tmp/drastic-isolated.sh <<ISO
+#!/bin/sh
+exec >>/tmp/drastic-launcher.log 2>&1
+echo "[drm-handoff] stop essway + pipewire"
+systemctl stop essway
+systemctl stop pipewire pipewire-pulse wireplumber 2>&1 | head
+sleep 2
+. /etc/profile 2>/dev/null
+source /storage/.config/gptokeyb/control.ini 2>/dev/null
+get_controls 2>/dev/null
+\$GPTOKEYB "drastic" -c /storage/.config/drastic/drastic.gptk &
+GPID=\$!
+export SDL2COMPAT_FORCE_FULLSCREEN_DESKTOP=1
+export SDL_VIDEO_FULLSCREEN=1
+export SDL_VIDEO_FULLSCREEN_DISPLAY=0
+export SDL_VIDEO_CENTERED=1
+export SDL_VIDEODRIVER=kmsdrm
+export SDL_AUDIODRIVER=alsa
+export AUDIODEV=plughw:0,0
+export HOME=/storage
+export SDL_TOUCH_MOUSE_EVENTS=0
+cd /storage/.config/drastic
+./drastic "${ROM}"
+EC=\$?
+kill -9 \$GPID 2>/dev/null
+pkill -9 gptokeyb 2>/dev/null
+touch /var/lock/start.games
+systemctl start pipewire pipewire-pulse wireplumber 2>&1 | head
+systemctl reset-failed essway 2>/dev/null
+systemctl start essway
+exit \$EC
+ISO
+        chmod +x /tmp/drastic-isolated.sh
+        systemd-run --scope --quiet --collect /tmp/drastic-isolated.sh
+else
+        # outros devices: comportamento original (com libdrastouch)
+        export LD_PRELOAD="/usr/lib/libdrastouch.so"
+        ./drastic "$1"
+fi
 _gptokeyb_pid="$(pidof gptokeyb 2>/dev/null)"
 [ -n "${_gptokeyb_pid}" ] && kill -9 ${_gptokeyb_pid}
