@@ -10,7 +10,11 @@ PKG_DEPENDS_TARGET="toolchain"
 PKG_SHORTDESC="An enhanced remake of the melonDS core for libretro that prioritizes standalone parity, reliability, and usability."
 PKG_TOOLCHAIN="cmake-make"
 
-PKG_CMAKE_OPTS_TARGET=" -DENABLE_OPENGL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_FLAGS=-fno-lto -DCMAKE_CXX_FLAGS=-fno-lto -DCMAKE_EXE_LINKER_FLAGS=-fno-lto -DCMAKE_SHARED_LINKER_FLAGS=-fno-lto"
+# 2026-05-28 Amlogic-no X5M (Mali Valhall G310 blob r44p0): blob só tem GLES,
+# não tem libOpenGL.so.0 desktop. ENABLE_OPENGL=ON forçava find_package(OpenGL)
+# -> core linkava libOpenGL/libGLdispatch -> dlopen failed silencioso no X5M.
+# Fix opção A: ENABLE_OPENGL=OFF (software render, sem upscale GL).
+PKG_CMAKE_OPTS_TARGET=" -DENABLE_OPENGL=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_FLAGS=-fno-lto -DCMAKE_CXX_FLAGS=-fno-lto -DCMAKE_EXE_LINKER_FLAGS=-fno-lto -DCMAKE_SHARED_LINKER_FLAGS=-fno-lto"
 
 if [ "${OPENGL_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" ${OPENGL}"
