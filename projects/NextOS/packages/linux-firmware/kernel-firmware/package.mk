@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (C) 2016-present Team LibreELEC (https://libreelec.tv)
 
+# 2026-05-28 bump CoreELEC 7f3137fd — linux-firmware geral 20260110 -> 20260519
 PKG_NAME="kernel-firmware"
-PKG_VERSION="20260110"
+PKG_VERSION="20260519"
 PKG_LICENSE="other"
 PKG_SITE="https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/"
 PKG_URL="https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-${PKG_VERSION}.tar.gz"
