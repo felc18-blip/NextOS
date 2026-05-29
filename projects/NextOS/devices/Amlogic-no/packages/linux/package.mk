@@ -3,13 +3,18 @@
 # Copyright (C) 2017-present Team LibreELEC (https://libreelec.tv)
 # Copyright (C) 2024-present Team CoreELEC (https://coreelec.org)
 
+# 2026-05-28 bump CoreELEC f8ae6e53 — kernel 5.15.196_20260225 -> _20260306
+# Único patch novo no upstream linux-amlogic:
+#   6cf6b7fc (2026-03-22) cpuinfo: separate s7d soc s905x5m and s905a
+#     (cosmético — pack-id 0x01=S905X5M vs 0x03=S905A em /proc/cpuinfo)
+# Vai junto: CONFIG_CC_CAN_LINK + CONFIG_CC_CAN_LINK_STATIC no linux.aarch64.conf
 PKG_NAME="linux"
-PKG_VERSION="d3c5e2d96889c4f48dac2f3d8d0f3b2c107f8161"
+PKG_VERSION="6cf6b7fc21af036671b306156dd6c7b1923ad4ca"
 PKG_SHA256=""
 PKG_LICENSE="GPL"
 PKG_SITE="http://www.kernel.org"
 PKG_URL="https://github.com/CoreELEC/linux-amlogic/archive/${PKG_VERSION}.tar.gz"
-PKG_GIT_BRANCH="5.15.196_20260225"
+PKG_GIT_BRANCH="5.15.196_20260306"
 PKG_BUILD_PERF="no"
 PKG_DEPENDS_HOST="ccache:host rsync:host openssl:host"
 PKG_DEPENDS_TARGET="toolchain linux:host kmod:host xz:host keyutils aml-dtbtools:host aml-dtbtools ${KERNEL_EXTRA_DEPENDS_TARGET}"
