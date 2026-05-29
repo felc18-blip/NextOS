@@ -4,7 +4,7 @@
 
 PKG_NAME="dolphin-sa"
 PKG_LICENSE="GPLv2"
-PKG_DEPENDS_TARGET="toolchain libevdev libdrm ffmpeg zlib libpng lzo libusb zstd ecm openal-soft pulseaudio alsa-lib libfmt hidapi curl SDL3"
+PKG_DEPENDS_TARGET="toolchain libevdev libdrm ffmpeg zlib libpng lzo libusb zstd ecm openal-soft pulseaudio alsa-lib libfmt hidapi curl"
 PKG_LONGDESC="Dolphin is a GameCube / Wii / Triforce emulator, allowing you to play games for these two platforms on PC with improvements. "
 PKG_TOOLCHAIN="cmake"
 
@@ -21,19 +21,18 @@ case ${DEVICE} in
                              -DCMAKE_EXE_LINKER_FLAGS=-flto=$(nproc)"
   ;;
   *)
-    # 2026-05-28 Amlogic-no X5M (Mali Valhall G310): versão antiga e6583f8 não
-    # tem DolphinQt no source -> ENABLE_QT=ON virava no-op. Trocar pra commit
-    # 9323074a (mesma do RK3399/SM8250 que JELOS já usa com Qt6 funcional).
-    # Plugin Qt6 eglfs já provado funcionar pelo melonDS/aether no X5M.
-    PKG_VERSION="9323074ada4b1d372809dc71ed092efe8d0e4c8e"
+    # 2026-05-29 Amlogic-no X5M (Mali Valhall G310): voltar ao approach do
+    # Arch-R original — Dolphin headless/wayland SEM Qt (commit e6583f8 +
+    # patches wayland). A tentativa de 28/05 com Qt6 + 9323074a não vingou;
+    # o build oficial do Arch-R p/ devices ARM não-Qualcomm é headless.
+    PKG_VERSION="e6583f8bec814d8f3748f1d7738457600ce0de56"
     PKG_SITE="https://github.com/dolphin-emu/dolphin"
     PKG_URL="${PKG_SITE}.git"
-    PKG_DEPENDS_TARGET+=" qt6"
-    PKG_PATCH_DIRS+=" qt6"
-    PKG_CMAKE_OPTS_TARGET+=" -DENABLE_QT=ON \
-                             -DUSE_RETRO_ACHIEVEMENTS=ON \
-                             -DENABLE_HEADLESS=OFF \
-                             -DCMAKE_EXE_LINKER_FLAGS=-flto=$(nproc)"
+    PKG_PATCH_DIRS+=" wayland"
+    PKG_CMAKE_OPTS_TARGET+=" -DENABLE_QT=OFF \
+                             -DENABLE_WAYLAND=ON \
+                             -DUSE_RETRO_ACHIEVEMENTS=OFF \
+                             -DENABLE_HEADLESS=ON"
   ;;
 esac
 
@@ -109,6 +108,13 @@ post_install() {
       SM8250|SM8550|RK3399|SM8650)
         DOLPHIN_BACKEND="x11"
         EXPORTS="export QT_QPA_PLATFORM=xcb"
+      ;;
+      Amlogic-no)
+        # KMSDRM direto (sem compositor) via plataforma DRM/EGL/GBM portada do
+        # PR dolphin-emu #9015 (patch wayland/050-drm-platform). O blob Valhall
+        # G310 exporta gbm_*/egl* nativos; ES precisa soltar o /dev/dri/card0.
+        DOLPHIN_BACKEND="drm"
+        EXPORTS=""
       ;;
       *)
         DOLPHIN_BACKEND="wayland"
