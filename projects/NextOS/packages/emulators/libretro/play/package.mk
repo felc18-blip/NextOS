@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Copyright (C) 2024-present NextOS (https://github.com/felc18-blip/NextOS)
+# NextOS Elite Edition - Play! (PS2) - Fix Full Headers & Arch
 
-PKG_NAME="play-lr"
-PKG_VERSION="b3be9d4840ab947448aedf2228496510257726ac"
+PKG_NAME="play"
+PKG_VERSION="d862ad9cae6c76cbe494db54fa985f21bfcef2a8"
 PKG_LICENSE="BSDv2"
 PKG_SITE="https://github.com/jpd002/Play-"
 PKG_URL="${PKG_SITE}.git"
@@ -32,28 +32,25 @@ PKG_CMAKE_OPTS_TARGET+=" -DBUILD_LIBRETRO_CORE=yes \
                          -DENABLE_AMAZON_S3=no \
                          -DCMAKE_BUILD_TYPE=Release"
 
+pre_configure_target() {
+  # GCC 16 (NextOS toolchain) é strict pra implicit-function-declaration.
+  # zstd zlibWrapper (deps/Dependencies/zstd/zlibWrapper/gz*.c) usa strlen,
+  # memset, memcpy, strerror sem #include <string.h>. Erro:
+  #   error: implicit declaration of function 'strlen'
+  # Bug upstream do zstd. Injetar #include <string.h> e <stdio.h> no topo
+  # de cada arquivo gz*.c antes do build.
+  for f in ${PKG_BUILD}/deps/Dependencies/zstd/zlibWrapper/gz*.c; do
+    [ -f "$f" ] || continue
+    grep -q "include <string.h>" "$f" || sed -i '1i #include <string.h>\n#include <stdio.h>' "$f"
+  done
+}
+
 pre_make_target() {
   find ${PKG_BUILD} -name flags.make -exec sed -i "s:isystem :I:g" \{} \;
   find ${PKG_BUILD} -name build.ninja -exec sed -i "s:isystem :I:g" \{} \;
 }
 
-make_target() {
-  # play-lr (PS2) usa Ninja (CMake generator). Sem Makefile gerado.
-  # Build pesado (Vulkan-leaning); best-effort em aarch64. Falha silenciosa
-  # pra nao quebrar build geral. Saida: Source/ui_libretro/play_libretro.so
-  cd ${PKG_BUILD}/.${TARGET_NAME}
-  if [ -f build.ninja ]; then
-    ninja play_libretro || ninja || true
-  else
-    make ${MAKEFLAGS} || true
-  fi
-}
-
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib/libretro
-  if [ -f ${PKG_BUILD}/.${TARGET_NAME}/Source/ui_libretro/play_libretro.so ]; then
-    cp ${PKG_BUILD}/.${TARGET_NAME}/Source/ui_libretro/play_libretro.so ${INSTALL}/usr/lib/libretro/
-  else
-    echo "play_libretro.so not built — skipped"
-  fi
+     cp ${PKG_BUILD}/.${TARGET_NAME}/Source/ui_libretro/play_libretro.so ${INSTALL}/usr/lib/libretro/
 }
