@@ -159,13 +159,12 @@
   # Cobre kernel cfg80211 request_firmware() default no boot.
     ADDITIONAL_PACKAGES+=" wireless-regdb"
 
-  # 2026-05-29 Abandonado a tentativa weston/Fase 1 Wayland — voltamos pro
-  # padrão Arch-R original (sway + essway via UI_SERVICE em 090-ui_service).
-  # Foi possível porque o wlroots agora tem o hack ROCKNIX mali_buffer_sharing
-  # + EGL_WL_bind_wayland_display (commits 69fcd0a2d5 + f182996678 dentro do
-  # tag 0.19.3-rk). sway é o compositor nativo do Arch-R e essway sobe em
-  # cima via Requires=sway.service. weston ficou apenas como pacote
-  # disponível para teste manual (não entra no rootfs sem ADDITIONAL_PACKAGES).
+  # 2026-05-29 Weston Fase 1 (restaurado): ES roda KMSDRM-bare por padrão
+  # (essway, UI_SERVICE em 090-ui_service); weston entra no rootfs como
+  # SEGUNDO backend opt-in, gated por /storage/.config/weston-enabled.
+  # Padrão herdado do Elite Edition (device "no"). Sem a flag, weston não sobe.
+  # weston.service: enable_service via post_install + ConditionPathExists.
+    ADDITIONAL_PACKAGES+=" weston weston-kiosk-shell-dpms"
 
   # compat/lib32 (rsync local durante o install do lib32).
 
