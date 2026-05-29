@@ -2,8 +2,8 @@
 # Copyright (C) 2024-present Team LibreELEC (https://libreelec.tv)
 
 PKG_NAME="spirv-llvm-translator"
-PKG_VERSION="20.1.5"
-PKG_SHA256="83048509774d865dab7631c887b0673753f59f337256bb56829ea32f30d7584b"
+PKG_VERSION="22.1.2"
+PKG_SHA256="b37196b1a1a60282a24cf937ab7d6807d7d54dc718f2a37a78e211be26df57ac"
 PKG_LICENSE="LLVM"
 PKG_SITE="https://github.com/KhronosGroup/SPIRV-LLVM-Translator"
 PKG_DEPENDS_HOST="toolchain:host llvm:host"
