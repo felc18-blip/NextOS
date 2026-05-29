@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# 2026-05-17 NextOS Amlogic-nxtos: usar fork felc18-blip/melonDS-nextos (Qt5
-# patches Mali-450) com Qt6 do NextOS. Fork força ScreenPanelNative + Software
-# 3D, evita GL #version 140 shaders e GPU3D OpenGL renderer (Mali-450 sem
-# OpenGL 3.x desktop).
+# 2026-05-28 (iter3 X5M Valhall): voltar pro fork felc18-blip/melonDS-nextos.
+# Upstream master/1.1 tag tinha regression no JIT aarch64 que CONGELAVA o jogo
+# no X5M (200%+ CPU em spinloop). Fork tem GLES 2 path compatível + JIT estável.
+# Linkar contra nosso Qt 6.6.1 (que tem qtmultimedia → ÁUDIO funciona).
 
 PKG_NAME="melonds-sa"
 PKG_VERSION="0296bed0"
@@ -12,7 +12,7 @@ PKG_URL="${PKG_SITE}.git"
 PKG_GIT_CLONE_BRANCH="nextos"
 GET_HANDLER_SUPPORT="git"
 PKG_DEPENDS_TARGET="toolchain SDL2 qt6 libarchive libslirp libpcap libzip zstd"
-PKG_LONGDESC="Nintendo DS emulator (NextOS fork, Qt6, Mali-450 software 3D)"
+PKG_LONGDESC="Nintendo DS emulator (NextOS fork felc18-blip — JIT estável + GLES 2)"
 PKG_TOOLCHAIN="cmake"
 PKG_BUILD_FLAGS="+speed"
 
@@ -28,6 +28,16 @@ pre_configure_target() {
     ${PKG_BUILD}/src/frontend/qt_sdl/CMakeLists.txt
   sed -i 's|set(QT_LINK_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network Qt6::Multimedia Qt6::OpenGL Qt6::OpenGLWidgets)|set(QT_LINK_LIBS Qt6::Core Qt6::Gui Qt6::GuiPrivate Qt6::Widgets Qt6::Network Qt6::Multimedia Qt6::OpenGL Qt6::OpenGLWidgets)|' \
     ${PKG_BUILD}/src/frontend/qt_sdl/CMakeLists.txt
+
+  # Bug em duckstation/gl/context_egl_x11.cpp em aarch64 (1.1 tag): retorna
+  # 'false' (bool) onde EGLNativeWindowType (void*) é esperado, e static_cast
+  # de Window (unsigned long) pra void* não converte. Fix: trocar false→nullptr
+  # e static_cast→reinterpret_cast no único arquivo afetado.
+  X11=${PKG_BUILD}/src/frontend/duckstation/gl/context_egl_x11.cpp
+  if [ -f "$X11" ]; then
+    sed -i 's|return false;|return nullptr;|g' "$X11"
+    sed -i 's|static_cast<EGLNativeWindowType>|reinterpret_cast<EGLNativeWindowType>|g' "$X11"
+  fi
 }
 
 makeinstall_target() {

@@ -164,12 +164,25 @@ else
     ROM="${1}"
 fi
 
-# QT platform - use wayland on Wayland compositors, xcb otherwise
+# QT platform: wayland se compositor presente, eglfs (KMSDRM direto) caso
+# contrário. Antes era 'xcb' (X11) mas sem Xorg no NextOS sempre falhava
+# carregando plugin; eglfs serve direto via DRM/KMS no Amlogic-no/nxtos.
 if [ -n "${WAYLAND_DISPLAY}" ]; then
     export QT_QPA_PLATFORM=wayland
 else
-    export QT_QPA_PLATFORM=xcb
+    export QT_QPA_PLATFORM=eglfs
 fi
+
+# Audio HDMI X5M Amlogic-no: HDMITX rota Spdif_b → hw:0,0 (TDM-C-T9015 é
+# lineout analógico, NÃO o HDMI). PulseAudio runtime dir do system.
+case "${HW_DEVICE:-${DEVICE:-}}" in
+  Amlogic-no)
+    export AUDIODEV=plughw:0,0
+    export SDL_AUDIODRIVER=alsa
+    export XDG_RUNTIME_DIR=/var/run/0-runtime-dir
+    export PULSE_RUNTIME_PATH=/var/run/0-runtime-dir/pulse
+    ;;
+esac
 
 # Qt requires UTF-8 locale
 export LC_ALL=en_US.UTF-8 2>/dev/null || export LC_ALL=C.UTF-8
@@ -179,9 +192,11 @@ export QT_QPA_NO_SIGNAL_SPY=1
 export QSG_RENDER_LOOP=basic
 export QT_ENABLE_HIGHDPI_SCALING=0
 
-@PANFROST@
-@HOTKEY@
-@LIBMALI@
+# Hooks de substituição em package.mk (atualmente vazios — deixar comentados
+# pra não quebrar exec se o sed pré-build não rolar)
+# @PANFROST@ — env mesa panfrost (não usado no Amlogic-no Valhall G310 blob)
+# @HOTKEY@   — bindings hotkey-extra
+# @LIBMALI@  — preload libMali (já no LD path)
 
 #Generate a new MelonDS.toml each run (temporary hack)
 rm -rf "${CONF_DIR}/melonDS.toml"
