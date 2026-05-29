@@ -44,6 +44,30 @@ DEVICE_BTN_DPAD_LEFT="5-"
 DEVICE_BTN_DPAD_RIGHT="5+"
 fi
 
+# Generico: dpad reportado como HAT pelo ES (mkcontroller emite "h<id><dir>").
+# O cfg do mednafen NAO tem syntax de hat (so button_N / abs_N+-), entao sem
+# tratamento o gen_config poe button_99 = dpad morto (caso do "USB Gamepad" no
+# Amlogic-no). Resolver computando do proprio ID do mednafen (GUID1 codifica
+# num_axes[8:9] num_buttons[10:11] num_hats[12:13]):
+#  - num_hats>0  : driver SDL expoe o hat como botoes virtuais a partir de
+#                  num_buttons (HatToButtonCompat: +0 up, +1 right, +2 down, +3 left).
+#  - num_hats==0 : SDL colapsou o hat em eixos; ABS_HAT0X/Y vem por ultimo, entao
+#                  o dpad sao os 2 ultimos eixos (mesma ideia dos overrides X-Box360/OSHPB).
+if [[ "${DEVICE_BTN_DPAD_UP}" == h* ]]; then
+    HEXID="${GUID1#0x}"
+    NUM_AXES=$((16#${HEXID:16:4}))
+    NUM_HATS=$((16#${HEXID:24:4}))
+    if [ "${NUM_HATS}" -gt 0 ]; then
+        NUM_BTN=$((16#${HEXID:20:4}))
+        DEVICE_BTN_DPAD_UP="$((NUM_BTN+0))";  DEVICE_BTN_DPAD_RIGHT="$((NUM_BTN+1))"
+        DEVICE_BTN_DPAD_DOWN="$((NUM_BTN+2))"; DEVICE_BTN_DPAD_LEFT="$((NUM_BTN+3))"
+    elif [ "${NUM_AXES}" -ge 2 ]; then
+        AXY=$((NUM_AXES-1)); AXX=$((NUM_AXES-2))
+        DEVICE_BTN_DPAD_UP="${AXY}-";  DEVICE_BTN_DPAD_DOWN="${AXY}+"
+        DEVICE_BTN_DPAD_LEFT="${AXX}-"; DEVICE_BTN_DPAD_RIGHT="${AXX}+"
+    fi
+fi
+
 # Replace modifiers with actual buttons
 for MOD in DEVICE_FUNC_KEYA_MODIFIER DEVICE_FUNC_KEYB_MODIFIER
 do
