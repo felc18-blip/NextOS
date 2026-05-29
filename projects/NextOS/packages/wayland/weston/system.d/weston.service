@@ -1,26 +1,14 @@
 [Unit]
 Description=Weston Launcher
-# NextOS 2026-05-29: removido `Before=graphical.target` (causava ordering cycle
-# com nextos-autostart.service After=graphical.target → systemd quebrava o ciclo
-# deletando weston.service do boot). WantedBy=graphical.target abaixo já garante
-# que weston sobe junto com o target.
+Before=graphical.target
 After=multi-user.target nextos-automount.service
 RequiresMountsFor=/storage
 ConditionKernelCommandLine=!installer
-# NextOS opt-in: Weston só sobe se o usuário criar /storage/.config/weston-enabled.
-# Caminho normal (Amlogic-no) é KMSDRM bare via essway.service + ES SDL2.
-# Para ativar modo Wayland: `touch /storage/.config/weston-enabled` + reboot.
-ConditionPathExists=/storage/.config/weston-enabled
 
 [Service]
 Environment=HOME=/storage
 Environment=LANG=C
 Environment=XDG_RUNTIME_DIR=/var/run/0-runtime-dir
-# NextOS Amlogic-no (Valhall G310/G57): desativar AFBC no path Wayland.
-# Sem isto, libmali aloca buffers AFBC que o plano primário do meson-drm
-# vendor rejeita no atomic commit -> pageflip -22. profile.d NÃO é
-# carregado em systemd services, por isso a var precisa estar aqui.
-Environment=MALI_WAYLAND_AFBC=0
 EnvironmentFile=/etc/profile
 WorkingDirectory=/storage
 ExecStartPre=-/usr/lib/weston/weston-config
