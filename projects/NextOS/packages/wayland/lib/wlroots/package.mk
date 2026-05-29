@@ -9,8 +9,12 @@ PKG_LONGDESC="A modular Wayland compositor library"
 PKG_TOOLCHAIN="meson"
 
 case ${DEVICE} in
-  RK3326|RK3566|S922X)
-    # despite the '-rk' indication this is a wlroots version with libmali hacks
+  RK3326|RK3566|S922X|Amlogic-no)
+    # despite the '-rk' indication this is a wlroots version with libmali hacks.
+    # 2026-05-29 NextOS adicionou Amlogic-no: blob Mali Valhall G310 r44p0 do X5M usa
+    # mali_buffer_sharing vendor (não zwp_linux_dmabuf) — fork ROCKNIX tem o hack
+    # types/wlr_egl_buffer.c::egl_buffer_get_dmabuf que extrai dmabuf do buffer
+    # interno do Mali, resolvendo tela preta de retroarch/ppsspp/SDL2 Wayland.
     PKG_VERSION="0.19.3-rk"
     PKG_SHA256="5385dc105f2c4c5fe3157e0b0299d6508765086d605fe4efe3ae437d4f18a5d9"
     PKG_PATCH_DIRS+=" libmali"
@@ -22,8 +26,10 @@ case ${DEVICE} in
     PKG_URL="https://github.com/rocknix/rockchip-wlroots/archive/refs/tags/${PKG_VERSION}.tar.gz"
   ;;
   *)
-    PKG_VERSION="0.19.3"
-    PKG_SHA256="a6ff89b64ea15e424d1b0db4a22145fccf5ec2ff2e7b8af0fa35e2ac8975986f"
+    # 2026-05-28 bump CoreELEC 17d1f3fd — wlroots 0.19.3 -> 0.20.1
+    # Mantém formato .tar.gz (unpack hardcoded), CoreELEC usa .tar.bz2.
+    PKG_VERSION="0.20.1"
+    PKG_SHA256="e9e699a06492121153ce3a3448b0aa610f3285130754b85fbb58736c931fffec"
     PKG_URL="${PKG_SITE}/-/archive/${PKG_VERSION}/wlroots-${PKG_VERSION}.tar.gz"
   ;;
 esac
