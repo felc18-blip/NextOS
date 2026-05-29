@@ -2,9 +2,9 @@
 # Copyright (C) 2024-present NextOS (https://github.com/felc18-blip/NextOS)
 
 PKG_NAME="qt6"
-PKG_VERSION_MAJOR="6.11"
+PKG_VERSION_MAJOR="6.6"
 PKG_VERSION="${PKG_VERSION_MAJOR}.1"
-PKG_SHA256="252acef8c5ae68074d91cadba2ee4a83465051bbb970dd26e8f0daa0f3904e03"
+PKG_SHA256=""
 PKG_LICENSE="GPL"
 PKG_SITE="https://download.qt.io"
 PKG_URL="${PKG_SITE}/archive/qt/${PKG_VERSION_MAJOR}/${PKG_VERSION}/single/qt-everywhere-src-${PKG_VERSION}.tar.xz"
@@ -57,7 +57,13 @@ pre_configure_host() {
   echo "LDFLAGS are $LDFLAGS"
 
   unset HOST_CMAKE_OPTS
+  PKG_CMAKE_OPTS_HOST+=" -DCMAKE_FIND_PACKAGE_TARGETS_GLOBAL=TRUE"
+  PKG_CMAKE_OPTS_HOST+=" -DQT_FEATURE_clangcpp=OFF -DQT_FEATURE_lupdate=OFF"
   # Disable unneeded modules
+  # NOTA 2026-05-28: qtmultimedia mantido DISABLE no HOST — host só precisa de
+  # ferramentas (moc/uic/syncqt). qtmultimedia HOST quebra em GStreamer SFINAE.
+  # No TARGET qtmultimedia é ENABLED (linha 120) — precisa pra melonDS + qbittorrent
+  # áudio. Não confundir com Qt do sistema device que vem do TARGET.
   MODULES_TO_DISABLE=("qt3d" "qt5compat" "qtactiveqt" "qtcharts" "qtcoap" "qtconnectivity" "qtdatavis3d"
                       "qtdoc" "qtgraphs" "qtgrpc" "qthttpserver" "qtlocation" "qtlottie" "qtmqtt"
                       "qtmultimedia" "qtnetworkauth" "qtopcua" "qtpositioning" "qtquick3d" "qtquick3dphysics"
@@ -68,7 +74,7 @@ pre_configure_host() {
     PKG_CMAKE_OPTS_HOST+=" -DBUILD_${module}=OFF"
   done
 
-  # Enable required modules
+  # Enable required modules HOST (sem qtmultimedia — só TARGET precisa)
   # > qtbase qtshadertools qtdeclarative qtsvg qtlanguageserver qttools qtwayland
   MODULES_TO_ENABLE=("qtbase" "qtshadertools" "qtdeclarative" "qtsvg" "qtlanguageserver" "qtimageformats" "qttools" "qtwayland")
   for module in "${MODULES_TO_ENABLE[@]}"; do
@@ -89,6 +95,9 @@ pre_configure_host() {
 
 pre_configure_target(){
   unset TARGET_CMAKE_OPTS
+  PKG_CMAKE_OPTS_TARGET+=" -DCMAKE_FIND_PACKAGE_TARGETS_GLOBAL=TRUE"
+  PKG_CMAKE_OPTS_TARGET+=" -DFEATURE_ffmpeg=OFF -DQT_FEATURE_ffmpeg=OFF"
+  PKG_CMAKE_OPTS_TARGET+=" -DQT_FEATURE_clangcpp=OFF -DQT_FEATURE_lupdate=OFF"
 
   # Qt 6.8.3 + GLES2-only build quebra em qtdeclarative (qquickopenglutils.cpp
   # + qquickframebufferobject.cpp requerem QOpenGLFramebufferObject que só
