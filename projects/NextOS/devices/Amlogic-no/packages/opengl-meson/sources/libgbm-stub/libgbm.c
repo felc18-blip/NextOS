@@ -86,3 +86,23 @@ WRAP_RET(gbm_bo_get_user_data, void*, (void* bo), (bo), NULL)
 WRAP_RET(gbm_bo_get_width, uint32_t, (void* bo), (bo), 0)
 WRAP_VOID(gbm_bo_set_user_data, (void* bo, void* data, void* destroy_cb), (bo, data, destroy_cb))
 WRAP_RET(gbm_bo_write, int, (void* bo, const void* buf, size_t count), (bo, buf, count), -1)
+
+/* NextOS 2026-05-29: símbolos adicionais que Weston 15+ e libdrm modernos
+ * exigem. libMali.valhall.g310.so (r44p0 wayland-dmaheap) exporta todos
+ * abaixo; SoCs Bifrost (dvalin/gondul) cairão em fail_val seguro. */
+WRAP_RET(gbm_bo_import, void*, (void* dev, uint32_t type, void* buffer, uint32_t usage), (dev, type, buffer, usage), NULL)
+WRAP_RET(gbm_bo_get_fd, int, (void* bo), (bo), -1)
+WRAP_RET(gbm_bo_get_fd_for_plane, int, (void* bo, int plane), (bo, plane), -1)
+WRAP_RET(gbm_bo_get_bpp, uint32_t, (void* bo), (bo), 0)
+WRAP_RET(gbm_bo_map, void*, (void* bo, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t flags, uint32_t* stride, void** map_data), (bo, x, y, w, h, flags, stride, map_data), NULL)
+WRAP_VOID(gbm_bo_unmap, (void* bo, void* map_data), (bo, map_data))
+WRAP_RET(gbm_bo_create_with_modifiers, void*, (void* dev, uint32_t w, uint32_t h, uint32_t format, const uint64_t* modifiers, unsigned int count), (dev, w, h, format, modifiers, count), NULL)
+WRAP_RET(gbm_bo_create_with_modifiers2, void*, (void* dev, uint32_t w, uint32_t h, uint32_t format, const uint64_t* modifiers, unsigned int count, uint32_t flags), (dev, w, h, format, modifiers, count, flags), NULL)
+WRAP_RET(gbm_device_get_fd, int, (void* dev), (dev), -1)
+WRAP_RET(gbm_device_get_backend_name, const char*, (void* dev), (dev), NULL)
+WRAP_RET(gbm_device_get_format_modifier_plane_count, int, (void* dev, uint32_t format, uint64_t modifier), (dev, format, modifier), 0)
+WRAP_RET(gbm_format_get_name, char*, (uint32_t format, void* desc), (format, desc), NULL)
+WRAP_RET(gbm_surface_create_with_modifiers, void*, (void* dev, uint32_t w, uint32_t h, uint32_t format, const uint64_t* modifiers, unsigned int count), (dev, w, h, format, modifiers, count), NULL)
+WRAP_RET(gbm_surface_create_with_modifiers2, void*, (void* dev, uint32_t w, uint32_t h, uint32_t format, const uint64_t* modifiers, unsigned int count, uint32_t flags), (dev, w, h, format, modifiers, count, flags), NULL)
+WRAP_RET(gbm_surface_has_free_buffers, int, (void* surf), (surf), 0)
+WRAP_RET(gbm_surface_nolock_front_buffer, void*, (void* surf), (surf), NULL)
