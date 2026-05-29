@@ -69,7 +69,10 @@ fi
 # /storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt no momento do
 # launch, ate 4 controles. Logica portada do NextOS_Staging IMAGEM BASE
 # backup (mupen64plus-sa-nextos-backup-20260425).
-if [ "${HW_DEVICE}" = "Amlogic-nxtos" ]; then
+# Amlogic-no (Mali Valhall, blob): mesmo USB Gamepad generico, mesma necessidade
+# de injetar a entry — senao o controle nao funciona no jogo (cai no teclado:
+# "No auto-config found for joystick named 'USB Gamepad'").
+if [ "${HW_DEVICE}" = "Amlogic-nxtos" ] || [ "${HW_DEVICE}" = "Amlogic-no" ]; then
     SDL_DB="/storage/.config/SDL-GameControllerDB/gamecontrollerdb.txt"
     CONNECTED_PADS=$(awk '/^N: Name="/ {name=$0; sub(/N: Name="/, "", name); sub(/"$/, "", name)} /^H: Handlers=.*js[0-9]+/ {print name}' /proc/bus/input/devices)
     if [ -f "$SDL_DB" ] && [ -n "$CONNECTED_PADS" ]; then

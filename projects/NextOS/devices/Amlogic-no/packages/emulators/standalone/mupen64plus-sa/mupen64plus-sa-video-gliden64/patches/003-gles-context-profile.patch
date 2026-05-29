@@ -1,0 +1,37 @@
+diff --git a/src/Graphics/OpenGLContext/mupen64plus/mupen64plus_DisplayWindow.cpp b/src/Graphics/OpenGLContext/mupen64plus/mupen64plus_DisplayWindow.cpp
+index d33da3f..665b4f4 100644
+--- a/src/Graphics/OpenGLContext/mupen64plus/mupen64plus_DisplayWindow.cpp
++++ b/src/Graphics/OpenGLContext/mupen64plus/mupen64plus_DisplayWindow.cpp
+@@ -56,13 +56,32 @@ void DisplayWindowMupen64plus::_setAttributes()
+ {
+ 	LOG(LOG_VERBOSE, "_setAttributes");
+ 
++#ifdef EGL
++	// Amlogic-no (Mali Valhall, blob GLES-only): pedir contexto OpenGL ES 2.0.
++	// O default PROFILE_CORE 3.3 (desktop GL) nao tem EGL config compativel no
++	// blob → SDL KMSDRM falha "Can't window GBM/EGL surfaces on window creation".
++	// GLES2 casa com os paths isGLES2 e o patch 002-fix-no-video (precisao GLSL ES).
++	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_CONTEXT_PROFILE_MASK, M64P_GL_CONTEXT_PROFILE_ES);
++	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_CONTEXT_MAJOR_VERSION, 2);
++	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_CONTEXT_MINOR_VERSION, 0);
++#else
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_CONTEXT_PROFILE_MASK, M64P_GL_CONTEXT_PROFILE_CORE);
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_CONTEXT_MAJOR_VERSION, 3);
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_CONTEXT_MINOR_VERSION, 3);
++#endif
+ 
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_DOUBLEBUFFER, 1);
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_SWAP_CONTROL, config.video.verticalSync);
++#ifdef EGL
++	// Amlogic-no (Mali Valhall blob): pedir BUFFER_SIZE=16 (como o glide64mk2 que
++	// funciona). O SDL KMSDRM exige visual GBM XRGB8888 (patch 0009); no blob o
++	// config XRGB8888 reporta EGL_BUFFER_SIZE=24, e o de 32 bits e' ARGB8888.
++	// Pedir >=32 deixa so' configs ARGB (alpha) → nenhum casa o visual XRGB exigido
++	// → "Can't window GBM/EGL surfaces". Pedir >=16 deixa o config XRGB qualificar.
++	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_BUFFER_SIZE, 16);
++#else
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_BUFFER_SIZE, 32);
++#endif
+ 	FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_DEPTH_SIZE, 16);
+ 	if (config.video.multisampling > 0 && config.frameBufferEmulation.enable == 0) {
+ 		FunctionWrapper::CoreVideo_GL_SetAttribute(M64P_GL_MULTISAMPLEBUFFERS, 1);
