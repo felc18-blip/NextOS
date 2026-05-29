@@ -1,0 +1,68 @@
+diff --git a/es-app/src/ApiSystem.cpp b/es-app/src/ApiSystem.cpp
+index 97d4f9be..7a586691 100644
+--- a/es-app/src/ApiSystem.cpp
++++ b/es-app/src/ApiSystem.cpp
+@@ -189,7 +189,7 @@ std::string ApiSystem::getVersion(bool extra)
+ 
+ std::string ApiSystem::getApplicationName()
+ {
+-	return "ARCH R";
++	return "NEXT OS";
+ }
+ 
+ bool ApiSystem::setOverscan(bool enable) 
+diff --git a/es-app/src/guis/GuiMenu.cpp b/es-app/src/guis/GuiMenu.cpp
+index 42b2e95a..0e0a600b 100644
+--- a/es-app/src/guis/GuiMenu.cpp
++++ b/es-app/src/guis/GuiMenu.cpp
+@@ -254,7 +254,7 @@ void GuiMenu::openResetOptions()
+ 
+ 	s->addGroup(_("DATA MANAGEMENT"));
+ 	s->addEntry(_("BACKUP CONFIGURATIONS"), true, [window] {
+-	window->pushGui(new GuiMsgBox(window, _("WARNING THIS WILL RESTART EMULATIONSTATION!\n\nAFTER THE SCRIPT IS DONE REMEMBER TO COPY THE FILE /storage/roms/backup/ARCH R_BACKUP.zip TO SOME PLACE SAFE OR IT WILL BE DELETED ON NEXT REBOOT!\n\nBACKUP CURRENT CONFIG AND RESTART?"), _("YES"),
++	window->pushGui(new GuiMsgBox(window, _("WARNING THIS WILL RESTART EMULATIONSTATION!\n\nAFTER THE SCRIPT IS DONE REMEMBER TO COPY THE FILE /storage/roms/backup/NextOS_BACKUP.zip TO SOME PLACE SAFE OR IT WILL BE DELETED ON NEXT REBOOT!\n\nBACKUP CURRENT CONFIG AND RESTART?"), _("YES"),
+ 		[] {
+ 		Utils::Platform::runSystemCommand("/usr/bin/run \"/usr/bin/backuptool backup\"", "", nullptr);
+ 		}, _("NO"), nullptr));
+@@ -371,8 +371,8 @@ void GuiMenu::addVersionInfo()
+ 
+ 	if (!ApiSystem::getInstance()->getVersion().empty())
+ 	{
+-		if (ApiSystem::getInstance()->getApplicationName() == "ARCH R")
+-			label = "ARCH R " + ApiSystem::getInstance()->getVersion() + " (" + ApiSystem::getInstance()->getVersion(true) + ")";
++		if (ApiSystem::getInstance()->getApplicationName() == "NEXT OS")
++			label = "NEXT OS " + ApiSystem::getInstance()->getVersion() + " (" + ApiSystem::getInstance()->getVersion(true) + ")";
+ 		else
+ 		{
+ 			std::string aboutInfo = ApiSystem::getInstance()->getApplicationName() + " V" + ApiSystem::getInstance()->getVersion();
+@@ -1702,7 +1702,7 @@ void GuiMenu::openSystemSettings()
+       auto archr_screenshot_enabled = std::make_shared<SwitchComponent>(mWindow);
+       bool archrscreenshotenabled = SystemConf::getInstance()->get("archr.screenshot.enabled") == "1";
+       archr_screenshot_enabled->setState(SystemConf::getInstance()->getBool("archr.screenshot.enabled"));
+-      s->addWithLabel(_("ENABLE ARCH R SCREENSHOT"), archr_screenshot_enabled);
++      s->addWithLabel(_("ENABLE NEXT OS SCREENSHOT"), archr_screenshot_enabled);
+       archr_screenshot_enabled->setOnChangedCallback([archr_screenshot_enabled] {
+               bool archrscreenshotenabled = archr_screenshot_enabled->getState();
+                      SystemConf::getInstance()->set("archr.screenshot.enabled", archrscreenshotenabled ? "1" : "0");
+@@ -2851,7 +2851,7 @@ void GuiMenu::dtbOverlayItem(Window* mWindow, GuiSettings *s, const std::string
+ 			mWindow->pushGui(new GuiMsgBox(mWindow, _("WARNING: You are altering "
+ 				"hardware parameters that may yield your system unstable or unbootable. "
+ 				"In this case you will need to recover by manually editing "
+-				"extlinux/extlinux.conf on the ARCH R partition from a PC, by "
++				"extlinux/extlinux.conf on the NEXT OS partition from a PC, by "
+ 				"removing the whole line starting with: FDTOVERLAYS. \n "
+ 				"The changes will be applied on next reboot"),
+ 				_("Reboot now"), [] { Utils::Platform::quitES(Utils::Platform::QuitMode::REBOOT); },
+diff --git a/es-app/src/main.cpp b/es-app/src/main.cpp
+index 2ff2fa5a..419c0939 100644
+--- a/es-app/src/main.cpp
++++ b/es-app/src/main.cpp
+@@ -646,7 +646,7 @@ int main(int argc, char* argv[])
+ 		f.close();
+ 
+ 		if (val == "1")
+-		window.pushGui(new GuiMsgBox(&window, "ARCH R IS FREE SOFTWARE.\n\n IF YOU PAID FOR ARCH R YOU HAVE BEEN SCAMMED.\n\n PLEASE REQUEST A REFUND FROM THE SELLER!", _("AGREE")));
++		window.pushGui(new GuiMsgBox(&window, "NEXT OS IS FREE SOFTWARE.\n\n IF YOU PAID FOR NEXT OS YOU HAVE BEEN SCAMMED.\n\n PLEASE REQUEST A REFUND FROM THE SELLER!", _("AGREE")));
+ 
+ 		std::remove(markerFile.c_str());
+ 	}
