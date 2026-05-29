@@ -1,14 +1,25 @@
-diff -rupN alsa-lib-1.2.8.orig/src/pcm/pcm.c alsa-lib-1.2.8/src/pcm/pcm.c
---- alsa-lib-1.2.8.orig/src/pcm/pcm.c	2023-02-08 15:16:54.463152310 -0500
-+++ alsa-lib-1.2.8/src/pcm/pcm.c	2023-02-08 15:17:08.347091741 -0500
-@@ -8566,8 +8566,8 @@ int snd_pcm_recover(snd_pcm_t *pcm, int
-                         s = "underrun";
-                 else
-                         s = "overrun";
--                if (!silent)
--                        SNDERR("%s occurred", s);
-+                //if (!silent)
-+                //        SNDERR("%s occurred", s);
-                 err = snd_pcm_prepare(pcm);
-                 if (err < 0) {
-                         SNDERR("cannot recovery from %s, prepare failed: %s", s, snd_strerror(err));
+From: NextOS
+Date: 2026-05-28
+Subject: [PATCH] alsa-lib: silenciar mensagens "underrun/overrun occurred" em snd_pcm_recover
+
+Em alsa-lib 1.2.15.x a função snd_pcm_recover() troca SNDERR() por
+snd_error(PCM, ...) — mas o efeito do patch antigo (NextOS 1.2.8 era SNDERR)
+continua o mesmo: comentar as 2 linhas que poluem o syslog/journal de
+emuladores que dão underrun frequente no Mali-450 e Valhall com playback
+rápido.
+
+Patch atualizado para a API atual (snd_error → comentado, mantendo lógica).
+
+--- a/src/pcm/pcm.c
++++ b/src/pcm/pcm.c
+@@ -8784,8 +8784,8 @@ int snd_pcm_recover(snd_pcm_t *pcm, int err, int silent)
+ 			s = "underrun";
+ 		else
+ 			s = "overrun";
+-		if (!silent)
+-			snd_error(PCM, "%s occurred", s);
++		//if (!silent)
++		//	snd_error(PCM, "%s occurred", s);
+ 		err = snd_pcm_prepare(pcm);
+ 		if (err < 0) {
+ 			snd_error(PCM, "cannot recovery from %s, prepare failed: %s", s, snd_strerror(err));

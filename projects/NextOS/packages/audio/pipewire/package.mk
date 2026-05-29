@@ -2,7 +2,7 @@
 # Copyright (C) 2021-present Team LibreELEC (https://libreelec.tv)
 
 PKG_NAME="pipewire"
-PKG_VERSION="1.2.6"
+PKG_VERSION="1.6.6"
 PKG_LICENSE="LGPL"
 PKG_SITE="https://pipewire.org"
 PKG_URL="https://github.com/PipeWire/pipewire/archive/${PKG_VERSION}.tar.gz"
@@ -39,7 +39,7 @@ PKG_MESON_OPTS_TARGET="-Ddocs=disabled \
                        -Dinstalled_tests=disabled \
                        -Dgstreamer=disabled \
                        -Dgstreamer-device-provider=disabled \
-                       -Dsystemd=enabled \
+                       -Dlibsystemd=enabled \
                        -Dsystemd-system-service=enabled \
                        -Dsystemd-user-service=disabled \
                        -Dpipewire-alsa=enabled \
