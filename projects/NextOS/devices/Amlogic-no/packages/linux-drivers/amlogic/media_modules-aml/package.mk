@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2018-present Team CoreELEC (https://coreelec.org)
 
+# 2026-05-28 bump CoreELEC HEAD — ahead 1 commit:
+#   cc7abe05 (2026-05-19) h265: always check stream buffer level before run
+#                         (vh265.c: remove guard hevc->init_flag==0)
 PKG_NAME="media_modules-aml"
-PKG_VERSION="01ceb6fb5bbb8915c4b6ec7ff52e7221fdebecbf"
+PKG_VERSION="cc7abe05156c20d2f1c8091e99131c8b79b73e3d"
 PKG_SHA256=""
 PKG_LICENSE="GPL"
 PKG_SITE="https://coreelec.org"
