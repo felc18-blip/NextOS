@@ -159,6 +159,14 @@
   # Cobre kernel cfg80211 request_firmware() default no boot.
     ADDITIONAL_PACKAGES+=" wireless-regdb"
 
+  # 2026-05-29 Abandonado a tentativa weston/Fase 1 Wayland — voltamos pro
+  # padrão Arch-R original (sway + essway via UI_SERVICE em 090-ui_service).
+  # Foi possível porque o wlroots agora tem o hack ROCKNIX mali_buffer_sharing
+  # + EGL_WL_bind_wayland_display (commits 69fcd0a2d5 + f182996678 dentro do
+  # tag 0.19.3-rk). sway é o compositor nativo do Arch-R e essway sobe em
+  # cima via Requires=sway.service. weston ficou apenas como pacote
+  # disponível para teste manual (não entra no rootfs sem ADDITIONAL_PACKAGES).
+
   # compat/lib32 (rsync local durante o install do lib32).
 
   # add OOTB support for IR remote
