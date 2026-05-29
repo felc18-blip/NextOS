@@ -1,0 +1,28 @@
+diff --git a/Source/Core/VideoBackends/Vulkan/VulkanContext.cpp b/Source/Core/VideoBackends/Vulkan/VulkanContext.cpp
+index dfbbd65762..d94afdd23d 100644
+--- a/Source/Core/VideoBackends/Vulkan/VulkanContext.cpp
++++ b/Source/Core/VideoBackends/Vulkan/VulkanContext.cpp
+@@ -711,8 +711,21 @@ bool VulkanContext::CreateDevice(VkSurfaceKHR surface, bool enable_validation_la
+   }
+   if (surface && m_present_queue_family_index == queue_family_count)
+   {
+-    ERROR_LOG_FMT(VIDEO, "Vulkan: Failed to find an acceptable present queue.");
+-    return false;
++    // NextOS/Amlogic-no (Mali Valhall G310 blob): o driver NAO reporta present
++    // support via vkGetPhysicalDeviceSurfaceSupportKHR na display surface
++    // (VK_KHR_display), mesmo presentando de fato. Fallback: usar a graphics
++    // queue como present (display presenta implicito no KMS).
++    if (m_graphics_queue_family_index != queue_family_count)
++    {
++      WARN_LOG_FMT(VIDEO, "Vulkan: no present queue reported by driver; "
++                          "falling back to graphics queue (DRM/display).");
++      m_present_queue_family_index = m_graphics_queue_family_index;
++    }
++    else
++    {
++      ERROR_LOG_FMT(VIDEO, "Vulkan: Failed to find an acceptable present queue.");
++      return false;
++    }
+   }
+ 
+   VkDeviceCreateInfo device_info = {};

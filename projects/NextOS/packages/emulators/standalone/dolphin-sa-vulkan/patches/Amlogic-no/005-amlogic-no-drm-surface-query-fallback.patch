@@ -1,0 +1,60 @@
+diff --git a/Source/Core/VideoBackends/Vulkan/VKSwapChain.cpp b/Source/Core/VideoBackends/Vulkan/VKSwapChain.cpp
+index 3e7356e9dc..f83eb330c9 100644
+--- a/Source/Core/VideoBackends/Vulkan/VKSwapChain.cpp
++++ b/Source/Core/VideoBackends/Vulkan/VKSwapChain.cpp
+@@ -300,8 +300,14 @@ bool SwapChain::SelectSurfaceFormat()
+                                                       m_surface, &format_count, nullptr);
+   if (res != VK_SUCCESS || format_count == 0)
+   {
+-    LOG_VULKAN_ERROR(res, "vkGetPhysicalDeviceSurfaceFormatsKHR failed: ");
+-    return false;
++    // NextOS/Amlogic-no (blob Mali G310): query de surface formats nao funciona
++    // em display surface (KMS). Fallback p/ BGRA8.
++    WARN_LOG_FMT(VIDEO, "Vulkan: SurfaceFormats query failed ({}); using BGRA8 fallback.",
++                 static_cast<int>(res));
++    m_surface_format.format = VK_FORMAT_B8G8R8A8_UNORM;
++    m_surface_format.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
++    m_texture_format = AbstractTextureFormat::BGRA8;
++    return true;
+   }
+ 
+   std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
+@@ -387,8 +393,12 @@ bool SwapChain::SelectPresentMode()
+                                                   &mode_count, nullptr);
+   if (res != VK_SUCCESS || mode_count == 0)
+   {
+-    LOG_VULKAN_ERROR(res, "vkGetPhysicalDeviceSurfaceFormatsKHR failed: ");
+-    return false;
++    // NextOS/Amlogic-no (blob Mali G310): query de present modes nao funciona em
++    // display surface (KMS). FIFO e' mandatorio pelo spec -> fallback.
++    WARN_LOG_FMT(VIDEO, "Vulkan: PresentModes query failed ({}); using FIFO fallback.",
++                 static_cast<int>(res));
++    m_present_mode = VK_PRESENT_MODE_FIFO_KHR;
++    return true;
+   }
+ 
+   std::vector<VkPresentModeKHR> present_modes(mode_count);
+@@ -439,8 +449,21 @@ bool SwapChain::CreateSwapChain()
+                                                            m_surface, &surface_capabilities);
+   if (res != VK_SUCCESS)
+   {
+-    LOG_VULKAN_ERROR(res, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed: ");
+-    return false;
++    // NextOS/Amlogic-no (blob Mali G310): query de surface caps nao funciona em
++    // display surface (KMS). Fabricar caps a partir da resolucao do display.
++    WARN_LOG_FMT(VIDEO, "Vulkan: SurfaceCapabilities query failed ({}); fabricating for DRM display.",
++                 static_cast<int>(res));
++    surface_capabilities = {};
++    surface_capabilities.minImageCount = 2;
++    surface_capabilities.maxImageCount = 0;
++    surface_capabilities.currentExtent = {1920, 1080};  // display 1080p (Amlogic-no)
++    surface_capabilities.minImageExtent = {1, 1};
++    surface_capabilities.maxImageExtent = {8192, 8192};
++    surface_capabilities.maxImageArrayLayers = 1;
++    surface_capabilities.supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
++    surface_capabilities.currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
++    surface_capabilities.supportedCompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
++    surface_capabilities.supportedUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+   }
+ 
+   // Select swap chain format and present mode
