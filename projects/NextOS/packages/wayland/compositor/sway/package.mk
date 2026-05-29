@@ -14,9 +14,12 @@ case ${DEVICE} in
     PKG_URL="https://github.com/swaywm/sway/archive/${PKG_VERSION}.zip"
   ;;
   *)
-    PKG_VERSION="1.11"
-    PKG_SHA256="0e37a55b7c3379230e97e1ad982542b75016a0c7d6676198604e557f9b373dae"
-    PKG_URL="https://github.com/swaywm/sway/releases/download/${PKG_VERSION}/sway-${PKG_VERSION}.tar.gz"
+    # 2026-05-28 bump CoreELEC 89a6964f — sway 1.11 -> 1.12 (drop setuid patch).
+    # Patches renomeados: sway-100.01-static-ipc-socket.patch -> 1001-...,
+    # adicionado 1002-do-not-use-git-version.patch.
+    PKG_VERSION="1.12"
+    PKG_SHA256="29ca7caac960d13e02d8213418d91a5422c7c23102a283ceab944c57c5e1efcf"
+    PKG_URL="https://github.com/swaywm/sway/archive/${PKG_VERSION}.tar.gz"
   ;;
 esac
 
