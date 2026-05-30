@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2009-2016 Stephan Raue (stephan@openelec.tv)
+# Copyright (C) 2016-present Team LibreELEC (https://libreelec.tv)
+#
+# Amlogic-no device override: GCC 16 trata o downgrade implícito de
+# `const char *` -> `char *` em fdtput.c como erro. Upstream dtc 1.7.2 não
+# foi corrigido. Adicionamos EXTRA_CFLAGS=-Wno-error=discarded-qualifiers
+# só pra esse device pra não afetar outros (Amlogic-nxtos, Amlogic-old, etc.)
+# que podem rodar GCC anterior ou já ter o problema mitigado.
+
+PKG_NAME="dtc"
+PKG_VERSION="1.8.0"
+PKG_SHA256="b298e24ce4824bd2e2af60cf6a3d2815e555b3e44c431eadad0b52798c83a833"
+PKG_LICENSE="GPL"
+PKG_SITE="https://git.kernel.org/pub/scm/utils/dtc/dtc.git/"
+PKG_URL="https://www.kernel.org/pub/software/utils/dtc/dtc-${PKG_VERSION}.tar.xz"
+PKG_DEPENDS_HOST="make:host flex:host ninja:host"
+PKG_DEPENDS_TARGET="make:host gcc:host ninja:host"
+PKG_LONGDESC="The Device Tree Compiler"
+PKG_TOOLCHAIN="make"
+
+PKG_MAKE_OPTS_TARGET="dtc fdtput fdtget libfdt EXTRA_CFLAGS=-Wno-error=discarded-qualifiers"
+PKG_MAKE_OPTS_HOST="dtc libfdt EXTRA_CFLAGS=-Wno-error=discarded-qualifiers"
+
+pre_make_host() {
+  mkdir -p ${PKG_BUILD}/.${HOST_NAME}
+    cp -a ${PKG_BUILD}/* ${PKG_BUILD}/.${HOST_NAME}
+
+  cd ${PKG_BUILD}/.${HOST_NAME}
+}
+
+makeinstall_host() {
+  mkdir -p ${TOOLCHAIN}/bin
+    cp -P ${PKG_BUILD}/.${HOST_NAME}/dtc ${TOOLCHAIN}/bin
+  mkdir -p ${TOOLCHAIN}/lib
+    cp -P ${PKG_BUILD}/.${HOST_NAME}/libfdt/libfdt.so* ${TOOLCHAIN}/lib
+}
+
+pre_make_target() {
+  mkdir -p ${PKG_BUILD}/.${TARGET_NAME}
+    cp -a ${PKG_BUILD}/* ${PKG_BUILD}/.${TARGET_NAME}
+
+  cd ${PKG_BUILD}/.${TARGET_NAME}
+}
+
+makeinstall_target() {
+  mkdir -p ${INSTALL}/usr/bin
+    cp -P ${PKG_BUILD}/.${TARGET_NAME}/dtc ${INSTALL}/usr/bin
+    cp -P ${PKG_BUILD}/.${TARGET_NAME}/fdtput ${INSTALL}/usr/bin/
+    cp -P ${PKG_BUILD}/.${TARGET_NAME}/fdtget ${INSTALL}/usr/bin/
+  mkdir -p ${INSTALL}/usr/lib
+    cp -P ${PKG_BUILD}/.${TARGET_NAME}/libfdt/libfdt.so* ${INSTALL}/usr/lib/
+  mkdir -p ${SYSROOT_PREFIX}/usr/lib
+    cp -P ${PKG_BUILD}/.${TARGET_NAME}/libfdt/libfdt.so* ${SYSROOT_PREFIX}/usr/lib/
+  mkdir -p ${SYSROOT_PREFIX}/usr/include
+    cp -P ${PKG_BUILD}/.${TARGET_NAME}/libfdt/*.h ${SYSROOT_PREFIX}/usr/include/
+}

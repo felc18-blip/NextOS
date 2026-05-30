@@ -135,25 +135,50 @@ ARG=${1//[\\]/}
 # das threads filhas. Em gameplay/menu PPSSPP normal: ~500/s. Em deadlock: TODAS
 # threads em futex_wait, delta = 0. Se 6s consecutivos sem delta + dentro do
 # shutdown (apos PPSSPP main retornar break), SIGKILL.
+# Amlogic-no (X5M, KMSDRM-direto): o page-flip/vsync por frame faz o emu thread
+# soluçar a alimentacao de audio -> o ring buffer esvazia -> o sink HDMI do
+# pipewire faz XRUN (underrun) e NAO se recupera -> som some (intermitente:
+# as vezes o timing segura = RUNNING, as vezes nao = XRUN). Mesma causa/cura do
+# dolphin-sa (doc 14 §4.3): buffer grande no stream pipewire (~170ms) + buffering
+# extra do ppsspp absorvem o soluço. Confirmado por probe: PCM card0 em state XRUN.
+if [ "${HW_DEVICE}" = "Amlogic-no" ]; then
+  export PIPEWIRE_LATENCY=8192/48000
+  sed -i '/^ExtraAudioBuffering =/c\ExtraAudioBuffering = True' "${CONF_DIR}/${PPSSPP_INI}"
+fi
+
 if echo "${HW_DEVICE}" | grep -qE "Amlogic-nxtos|Amlogic-no"; then
   ${EMUPERF} ppsspp --pause-menu-exit "${ARG}" &
   PPID_=$!
   (
+    # Watchdog de shutdown. Ao clicar Exit/Quit o ppsspp pode deadlockar
+    # liberando o contexto GL/GPU (threads em futex_wait) -> o processo nunca
+    # termina -> o ES fica preso esperando o runemu retornar (tela travada).
+    # METRICA = TEMPO DE CPU do processo (utime+stime, jiffies de /proc/PID/stat).
+    # Em gameplay/menu o ppsspp renderiza e queima CPU (>>3 jiffies/s); no
+    # deadlock fica ~0. Se <=3 jiffies/s por 6s consecutivos -> SIGKILL (o kernel
+    # fecha o fd do DRM e o ES reassume o card0).
+    # (O metodo antigo media voluntary_ctxt_switches agregado, mas falhava: uma
+    # thread periodica que acordava ~1x/s mantinha o agregado mudando -> nunca
+    # acumulava 6s parado.)
     stuck=0
     last=-1
     while kill -0 "${PPID_}" 2>/dev/null; do
       sleep 1
-      [ ! -d "/proc/${PPID_}/task" ] && break
-      cur=$(awk '/voluntary_ctxt_switches/{s+=$2} END{print s+0}' /proc/"${PPID_}"/task/*/status 2>/dev/null)
-      if [ "${cur}" = "${last}" ]; then
-        stuck=$((stuck + 1))
-        if [ "${stuck}" -ge 6 ]; then
-          echo "[start_ppsspp] shutdown deadlock detectado (ctxt_switches estagnado ${stuck}s), SIGKILL pid=${PPID_}" >&2
-          kill -9 "${PPID_}" 2>/dev/null
-          break
+      [ ! -r "/proc/${PPID_}/stat" ] && break
+      st=$(cat /proc/"${PPID_}"/stat 2>/dev/null); st="${st#*) }"
+      cur=$(echo "${st}" | awk '{print $12+$13}'); cur="${cur:-0}"
+      if [ "${last}" != "-1" ]; then
+        d=$(( cur - last )); [ "${d}" -lt 0 ] && d=0
+        if [ "${d}" -le 3 ]; then
+          stuck=$((stuck + 1))
+          if [ "${stuck}" -ge 6 ]; then
+            echo "[start_ppsspp] shutdown deadlock (cpu parada ${stuck}s), SIGKILL pid=${PPID_}" >&2
+            kill -9 "${PPID_}" 2>/dev/null
+            break
+          fi
+        else
+          stuck=0
         fi
-      else
-        stuck=0
       fi
       last="${cur}"
     done

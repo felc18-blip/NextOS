@@ -2,9 +2,14 @@
 # Copyright (C) 2024-present NextOS (https://github.com/felc18-blip/NextOS)
 
 PKG_NAME="qt6"
-PKG_VERSION_MAJOR="6.6"
-PKG_VERSION="${PKG_VERSION_MAJOR}.1"
-PKG_SHA256=""
+# 2026-05-29 NextOS: bump 6.6.1 -> 6.11.0 pra casar com o Qt das AppImages de
+# duckstation (stenzek/UnofficialOS, ambas Qt 6.11.0). Em 6.6 o eglfs_kms nao
+# dava janela no Amlogic-no (KMSDRM sem compositor); 6.11.0 traz o
+# libQt6EglFSDeviceIntegration/eglfs_kms que as AppImages esperam (private API
+# Qt_6_11). Mesmas flags de antes (nada removido). Destrava tb a classe Qt (PS2).
+PKG_VERSION_MAJOR="6.11"
+PKG_VERSION="${PKG_VERSION_MAJOR}.0"
+PKG_SHA256="acf3b3db04c9e5d0820e8324b097320388954c297cee83d2bd698789234f68a4"
 PKG_LICENSE="GPL"
 PKG_SITE="https://download.qt.io"
 PKG_URL="${PKG_SITE}/archive/qt/${PKG_VERSION_MAJOR}/${PKG_VERSION}/single/qt-everywhere-src-${PKG_VERSION}.tar.xz"

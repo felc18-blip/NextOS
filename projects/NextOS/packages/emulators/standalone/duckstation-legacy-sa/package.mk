@@ -17,6 +17,14 @@ case ${TARGET_ARCH} in
         PKG_PATCH_DIRS+=" legacy"
         PKG_CMAKE_OPTS_TARGET+=" -DUSE_DRMKMS=ON -DENABLE_EGL=ON -DUSE_MALI=OFF"
       ;;
+      Amlogic-no)
+        # S905X5M / Mali Valhall G310: KMSDRM-direto (sem compositor), GLES via
+        # blob. Mesmo caminho do RK356* (DuckStation tem DRM/EGL/GBM nativo via
+        # USE_DRMKMS=ON, igual JELOS/EmuELEC nos handhelds). NAO usar Wayland.
+        PKG_VERSION="5ab5070d73f1acc51e064bd96be4ba6ce3c06f5c"
+        PKG_PATCH_DIRS+=" legacy"
+        PKG_CMAKE_OPTS_TARGET+=" -DUSE_DRMKMS=ON -DENABLE_EGL=ON -DUSE_MALI=OFF"
+      ;;
       *)
         PKG_VERSION="bfa792ddbff11c102521124f235ccb310cac6e6a"
         PKG_PATCH_DIRS+=" wayland/${TARGET_ARCH}"

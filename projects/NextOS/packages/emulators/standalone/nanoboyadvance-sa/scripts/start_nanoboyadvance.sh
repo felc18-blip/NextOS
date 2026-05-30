@@ -37,5 +37,13 @@ else
   unset EMUPERF
 fi
 
+# Amlogic-no (X5M Mali Valhall, KMSDRM-direto sem compositor): SDL precisa do driver
+# kmsdrm pra pegar o display, senao roda com som mas TELA PRETA. (GLES nativo do Mali;
+# nao precisa parar pipewire/essway: o ES solta o DRM master ao lancar pelo runemu.)
+if [ "${HW_DEVICE}" = "Amlogic-no" ]; then
+    export SDL_VIDEODRIVER=kmsdrm
+    export SDL_KMSDRM_VSYNC_DEFAULT=1
+fi
+
 #Run nanoboyadvance emulator
 ${EMUPERF} /usr/bin/NanoBoyAdvance "${1}"

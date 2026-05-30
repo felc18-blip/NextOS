@@ -113,7 +113,7 @@ case "${DEVICE}" in
     PKG_DEPENDS_TARGET+=" common-shaders glsl-shaders"
     PKG_EMUS+=" box64 dolphin-sa drastic-sa duckstation-sa mednafen nanoboyadvance-sa portmaster scummvmsa yabasanshiro-sa \
                 biginstinct-sa bigpemu-sa hypseus kronos-sa touchhle-sa vita3k-sa minivmacsa \
-                aethersx2-sa cemu-sa duckstation-legacy-sa pcsx2-sa rpcs3-sa xemu-sa"
+                aethersx2-sa cemu-sa duckstation-nogui pcsx2-sa rpcs3-sa xemu-sa"
     LIBRETRO_CORES+=" flycast2021-lr geolith-lr uae4arm \
                       beetle-psx-lr beetle-saturn-lr boom3-lr bsnes-hd-lr bsnes-lr \
                       dolphin-lr ecwolf-lr kronos-lr mame2003-lr \
@@ -266,6 +266,28 @@ makeinstall_target() {
   add_emu_core arcade retroarch fbalpha2019 false
   add_emu_core arcade retroarch mame false
   add_es_system arcade
+
+  ### Amstrad GX4000 (NextOS custom)
+  add_emu_core amstradgx4000 retroarch cap32 true
+  add_es_system amstradgx4000
+
+  ### Capcom set (NextOS custom)
+  add_emu_core capcom retroarch fbneo true
+  add_emu_core capcom retroarch mame2003_plus false
+  add_emu_core capcom retroarch mame2010 false
+  add_emu_core capcom retroarch mame false
+  add_es_system capcom
+
+  ### Sega Mark III (NextOS custom)
+  add_emu_core markiii retroarch gearsystem true
+  add_emu_core markiii retroarch genesis_plus_gx false
+  add_emu_core markiii retroarch picodrive false
+  add_es_system markiii
+
+  ### Mario Hacks / SMW romhacks (NextOS custom)
+  add_emu_core mariohack retroarch snes9x true
+  add_emu_core mariohack retroarch snes9x2010 false
+  add_es_system mariohack
 
   ### Arduboy
   add_emu_core arduboy retroarch arduous true
@@ -562,7 +584,11 @@ makeinstall_target() {
       add_emu_core gba nanoboyadvance nanoboyadvance-sa false
       ;;
     Amlogic-no)
-      add_emu_core gba nanoboyadvance nanoboyadvance-sa false
+      # nanoboyadvance-sa REMOVIDO do ES no Amlogic-no (2026-05-29): usa OpenGL DESKTOP
+      # (libGL/GLEW/#version 330 core/VAO/immediate-mode) e o blob Mali Valhall e GLES-only
+      # -> abre com SOM mas TELA PRETA. Porte GLES3 pendente (fork, prox. semana). GBA usa
+      # os cores libretro (gpsp/mgba/etc.) que ja funcionam.
+      :
       ;;
   esac
   case ${DEVICE} in
@@ -1120,7 +1146,13 @@ makeinstall_target() {
       add_emu_core psx retroarch pcsx_rearmed true
       add_emu_core psx retroarch beetle_psx false
       add_emu_core psx mednafen psx false
-      add_emu_core psx duckstation duckstation-sa false
+      # 2 duckstation no Amlogic-no:
+      #  - "duckstation"       = AppImage stenzek (CORE duckstation-sa) -> start_duckstation.sh
+      #                          (adicionado globalmente abaixo, vale p/ todos)
+      #  - "duckstation-nogui" = fork felc18-blip/duckstation-nextos (SDL2/KMSDRM).
+      #    CORE duckstation-nogui-sa -> runemu \${CORE%-*}=duckstation-nogui
+      #    -> start_duckstation-nogui.sh (script dedicado, sem colidir com a AppImage).
+      add_emu_core psx duckstation-nogui duckstation-nogui-sa false
       ;;
     RK3399|RK3588)
       add_emu_core psx retroarch pcsx_rearmed true

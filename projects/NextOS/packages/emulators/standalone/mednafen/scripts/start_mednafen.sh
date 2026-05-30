@@ -45,6 +45,36 @@ then
     fi
 fi
 
+# Mednafen 1.32 trava o load do cfg (Line 201 error) -> emulador aborta e volta
+# pro ES. Dois problemas nas linhas command.*: (1) combos joystick com && / || nao
+# sao aceitos; (2) o gen_config nao substitui o GUID do controle, gerando bindings
+# malformados "joystick  button_N" (GUID vazio) que tambem sao rejeitados.
+# Fix SEMPRE no cfg primario ($MEDNAFEN_HOME, o que o mednafen carrega): cortar no
+# primeiro " && "/" || " e, se o que sobrar tiver "joystick" (sem GUID valido),
+# descartar a linha (mednafen cai no default interno teclado). Linhas keyboard
+# (ex: insert_coin "keyboard ... || joystick ...") sobrevivem com o mapping valido.
+if [ -f "$MEDNAFEN_HOME/mednafen.cfg" ]; then
+    python3 -c "
+out=[]
+for l in open('$MEDNAFEN_HOME/mednafen.cfg'):
+    # So mexe em bindings MALFORMADOS = GUID vazio ('joystick' seguido de 2+ espacos),
+    # que so acontece quando o gen_config roda sem ver o controle (sem /dev/input/js0).
+    # Bindings VALIDOS ('joystick 0x.. button_N', inclusive combos com && em command.*)
+    # ficam INTACTOS -> com joydev ativo isto e no-op (preserva o mapeamento e o exit).
+    if 'joystick  ' in l:
+        kv=l.rstrip('\n')
+        for s in (' && ',' || '):
+            i=kv.find(s)
+            if i!=-1: kv=kv[:i].rstrip()
+        if 'joystick  ' in kv+' ' or kv.endswith('joystick'):
+            continue
+        out.append(kv+'\n')
+    else:
+        out.append(l)
+open('$MEDNAFEN_HOME/mednafen.cfg','w').writelines(out)
+" 2>/dev/null || true
+fi
+
 #Emulation Station Features
 GAME=$(echo "${1}"| sed "s#^/.*/##")
 CORE=$(echo "${2}"| sed "s#^/.*/##")
@@ -56,8 +86,10 @@ SHADER=$(get_setting shader "${PLATFORM}" "${GAME}")
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")
 FEATURES_CMDLINE=""
 
-# Amlogic-nxtos: PipeWire (pipewire-pulse) ocupa /dev/snd; mednafen ALSA bate
-# "Device or resource busy". Forcar SDL audio (negocia via pipewire-pulse).
+# Amlogic-nxtos: PipeWire (pipewire-pulse) ocupa /dev/snd; mednafen ALSA direto
+# bate "Device or resource busy". Forcar SDL audio (via pipewire-pulse).
+# (Amlogic-no NAO entra aqui: tem bloco GLES isolado proprio com pipewire morto +
+#  ALSA direto no HDMI, mais abaixo.)
 if [ "${HW_DEVICE}" = "Amlogic-nxtos" ]; then
     export SDL_AUDIODRIVER=alsa
     FEATURES_CMDLINE+=" -sound.driver sdl"
@@ -93,7 +125,7 @@ sed -i "s/filesys.path_state.*/filesys.path_state \/storage\/roms\/savestates\/$
 if [ "${HW_DEVICE}" = "Amlogic-no" ]; then
     SECOND_CFG="/storage/.mednafen/mednafen.cfg"
     if [ -f "$SECOND_CFG" ]; then
-        sed -i "s|^filesys.path_firmware .*|filesys.path_firmware /storage/roms/bios/${PLATFORM}|" "$SECOND_CFG"
+        sed -i "s|^filesys.path_firmware .*|filesys.path_firmware /storage/roms/bios|" "$SECOND_CFG"
         sed -i "s|^filesys.path_sav .*|filesys.path_sav /storage/roms/${PLATFORM}|" "$SECOND_CFG"
         sed -i "s|^filesys.path_savbackup .*|filesys.path_savbackup /storage/roms/${PLATFORM}|" "$SECOND_CFG"
         sed -i "s|^filesys.path_state .*|filesys.path_state /storage/roms/savestates/${PLATFORM}|" "$SECOND_CFG"
@@ -339,6 +371,58 @@ fi
 if [ "${HW_DEVICE}" = "Amlogic-nxtos" ]; then
     FEATURES_CMDLINE+=" -fs 1"
     STRETCH="${STRETCH:-full}"
+fi
+
+# === Amlogic-no (X5M Mali Valhall G310): mednafen em GLES via gl4es no KMSDRM ===
+# Modelo "Arch-R nativo": NAO mata o essway. O ES solta o DRM master sozinho ao
+# lancar (patch EE_KMSDRM_RELEASE_DRM) -> o input.service segue vivo e o
+# select+start MATA o mednafen nativamente (runemu fez set_kill "-9 mednafen").
+# So paramos o PIPEWIRE (com ele vivo o gl4es fica PRETO - ele segura o CRTC) e
+# religamos no fim. Render: gl4es (LD_PRELOAD libGL) traduz GL desktop->GLES2;
+# precisa SDL kmsdrm + preload libwayland/libGLESv2 (page-flip). Som (pipewire
+# morto): ALSA direto no HDMI (HDMITX=Spdif_b, device hdmi:). Controle: botoes
+# de acao nativos (joydev/js0) + D-pad (HAT, morto no joystick) via gptokeyb->setas.
+# OBS: numeros dos botoes sao do "USB Gamepad" do Felipe (es_input); outro pad pode diferir.
+if [ "${HW_DEVICE}" = "Amlogic-no" ] && [ -f /usr/lib/gl4es/libGL.so.1 ]; then
+    C="$MEDNAFEN_HOME/mednafen.cfg"
+    systemctl stop pipewire pipewire-pulse wireplumber 2>/dev/null
+    sleep 1
+    amixer -c 0 cset numid=35 1 >/dev/null 2>&1
+    amixer -c 0 cset numid=12 0 >/dev/null 2>&1
+    amixer -c 0 cset numid=1 0 >/dev/null 2>&1
+    if [ -f "$C" ]; then
+        # Botoes de acao NATIVOS (joydev/js0). Remap pros numeros fisicos do pad (es_input).
+        G="$(grep -m1 -oE 'joystick 0x[0-9a-f]+' "$C" 2>/dev/null)"
+        [ -z "$G" ] && G="joystick 0x00030810000101100006000c00000000"
+        for kv in x:0 a:1 b:2 y:3 z:6 c:7 ls:4 rs:5; do
+            k="${kv%%:*}"; n="${kv##*:}"
+            sed -i "s|^ss.input.port1.gamepad.${k} .*|ss.input.port1.gamepad.${k} ${G} button_${n}|" "$C"
+        done
+        # D-pad e HAT (morto no joystick) -> teclado setas. PENDENTE: o gptokeyb ainda
+        # nao esta convertendo o HAT desse "USB Gamepad" (SDL gamecontroller). D-pad nao pega.
+        sed -i "s|^ss.input.port1.gamepad.up .*|ss.input.port1.gamepad.up keyboard 0x0 82|" "$C"
+        sed -i "s|^ss.input.port1.gamepad.down .*|ss.input.port1.gamepad.down keyboard 0x0 81|" "$C"
+        sed -i "s|^ss.input.port1.gamepad.left .*|ss.input.port1.gamepad.left keyboard 0x0 80|" "$C"
+        sed -i "s|^ss.input.port1.gamepad.right .*|ss.input.port1.gamepad.right keyboard 0x0 79|" "$C"
+    fi
+    printf 'up=up\ndown=down\nleft=left\nright=right\n' > /tmp/mednafen-dpad.gptk
+    # Sair: NAO mexer no command.exit. select+start fecha pelo mecanismo NATIVO do Arch-R
+    # (input.service + set_kill "-9 mednafen"), que funciona porque o essway fica vivo e o
+    # gptokeyb '1' nao faz grab exclusivo do controle. [CONFIRMADO funcionando]
+    GPTK_WRAP=""
+    if [ -x /usr/bin/gptokeyb ]; then
+        ( sleep 2 && exec env -u EMUELEC /usr/bin/gptokeyb 1 mednafen -c /tmp/mednafen-dpad.gptk ) &
+        GPTK_WRAP=$!
+    fi
+    export SDL_VIDEODRIVER=kmsdrm SDL_KMSDRM_VSYNC_DEFAULT=1 SDL_VIDEO_FULLSCREEN=1
+    export HOME=/storage XDG_RUNTIME_DIR=/tmp
+    export LD_PRELOAD="/usr/lib/gl4es/libGL.so.1 /usr/lib/libwayland-client.so.0 /usr/lib/libwayland-server.so.0 /usr/lib/libGLESv2.so.2"
+    export LIBGL_ES=2 LIBGL_GL=21 LIBGL_NOTEST=1
+    ${EMUPERF} /usr/bin/mednafen -force_module ${CORE} -${CORE}.stretch ${STRETCH:=full} -${CORE}.shader ${SHADER:="ipsharper"} -video.driver opengl -fs 1 -sound.driver alsa -sound.device sexyal-literal-hdmi:CARD=AMLAUGESOUND ${FEATURES_CMDLINE} "${ROM_FOR_MEDNAFEN}"
+    [ -n "$GPTK_WRAP" ] && kill -9 "$GPTK_WRAP" 2>/dev/null   # mata o wrapper mesmo se ainda no sleep (evita gptokeyb orfao)
+    pkill -9 -f "gptokeyb .*mednafen" 2>/dev/null
+    systemctl start pipewire pipewire-pulse wireplumber 2>/dev/null
+    exit 0
 fi
 
 #Run mednafen

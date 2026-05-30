@@ -497,9 +497,12 @@ else
         ${VERBOSE} && log $0 "Executing $(eval echo ${RUNTHIS})"
         if echo "${HW_DEVICE}" | grep -qE "Amlogic-no"; then
                 # Amlogic-no STANDALONE (nao-libretro: emus por-sistema): blob Valhall
-                # deadloca no EXIT liberando GL (threads em futex_wait, vcs=0) ->
-                # processo nao morre -> ES nao volta. Watchdog: SIGKILL na arvore se vcs
-                # agregado parar 6s. (Libretro NAO entra aqui -> trata no branch acima.)
+                # deadloca no EXIT liberando GL (threads em futex_wait) -> processo
+                # nao morre -> ES nao volta. Watchdog: SIGKILL na arvore se o TEMPO DE
+                # CPU (utime+stime) parar. Em gameplay/menu o emu queima CPU (>>3
+                # jiffies/s); em deadlock fica ~0. (vcs agregado falhava: thread
+                # periodica acordando ~1x/s mantinha o agregado mudando.)
+                # (Libretro NAO entra aqui -> trata no branch acima.)
                 eval ${RUNTHIS} &>>${OUTPUT_LOG} &
                 __rt_pid=$!
                 (
@@ -508,17 +511,21 @@ else
                         while kill -0 "${__rt_pid}" 2>/dev/null; do
                                 sleep 1
                                 cur=$(for p in $(__tree "${__rt_pid}"); do
-                                        awk '/^voluntary_ctxt_switches/{s+=$2} END{print s+0}' /proc/"$p"/task/*/status 2>/dev/null
+                                        st=$(cat /proc/"$p"/stat 2>/dev/null); st="${st#*) }"
+                                        echo "$st" | awk '{print $12+$13}'
                                 done | awk '{t+=$1} END{print t+0}')
-                                if [ "${cur}" = "${last}" ]; then
-                                        stuck=$((stuck + 1))
-                                        if [ "${stuck}" -ge 6 ]; then
-                                                log $0 "[watchdog] exit deadlock (vcs estagnado ${stuck}s), SIGKILL arvore pid=${__rt_pid}"
-                                                for p in $(__tree "${__rt_pid}"); do kill -9 "$p" 2>/dev/null; done
-                                                break
+                                if [ "${last}" != "-1" ]; then
+                                        d=$(( cur - last )); [ "${d}" -lt 0 ] && d=0
+                                        if [ "${d}" -le 3 ]; then
+                                                stuck=$((stuck + 1))
+                                                if [ "${stuck}" -ge 6 ]; then
+                                                        log $0 "[watchdog] exit deadlock (cpu parada ${stuck}s), SIGKILL arvore pid=${__rt_pid}"
+                                                        for p in $(__tree "${__rt_pid}"); do kill -9 "$p" 2>/dev/null; done
+                                                        break
+                                                fi
+                                        else
+                                                stuck=0
                                         fi
-                                else
-                                        stuck=0
                                 fi
                                 last="${cur}"
                         done
