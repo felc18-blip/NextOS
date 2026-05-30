@@ -29,7 +29,7 @@ makeinstall_target() {
 
   mkdir -p $INSTALL/usr/lib/coreelec
     cp $PKG_DIR/scripts/* $INSTALL/usr/lib/coreelec/
-    chmod 755 $INSTALL/usr/lib/coreelec/openvfd-start
+    chmod 755 $INSTALL/usr/lib/coreelec/openvfd-start $INSTALL/usr/lib/coreelec/vfd-icons
 
   mkdir -p $INSTALL/etc/openvfd.conf.d/
     cp $PKG_DIR/openvfd.conf.d/* $INSTALL/etc/openvfd.conf.d/
@@ -37,4 +37,7 @@ makeinstall_target() {
 
 post_install() {
   enable_service openvfd.service
+  # Monitor que acende os icones WIFI/ETH/USB do display conforme o estado real
+  # (OpenVFDService standalone, sem Kodi, so mostra relogio+colon).
+  enable_service vfd-icons.service
 }

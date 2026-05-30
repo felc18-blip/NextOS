@@ -1,0 +1,13 @@
+[Unit]
+Description=VFD status icons (wifi/eth/usb)
+After=openvfd.service
+Wants=openvfd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/coreelec/vfd-icons
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

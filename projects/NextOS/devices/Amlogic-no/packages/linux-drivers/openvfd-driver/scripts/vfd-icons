@@ -1,0 +1,12 @@
+#!/bin/sh
+# Acende icones WIFI/ETH/USB do display VFD conforme estado real
+LED=/sys/class/leds/openvfd
+[ -w "$LED/led_on" ] || exit 0
+si(){ echo "$1" > "$LED/led_$2" 2>/dev/null; }
+while true; do
+  [ "$(cat /sys/class/net/wlan0/operstate 2>/dev/null)" = "up" ] && si wifi on || si wifi off
+  [ "$(cat /sys/class/net/eth0/operstate 2>/dev/null)" = "up" ] && si eth on || si eth off
+  u=0; for c in /sys/bus/usb/devices/*/bDeviceClass; do [ -f "$c" ] && [ "$(cat "$c" 2>/dev/null)" != "09" ] && u=1 && break; done
+  [ "$u" = "1" ] && si usb on || si usb off
+  sleep 10
+done

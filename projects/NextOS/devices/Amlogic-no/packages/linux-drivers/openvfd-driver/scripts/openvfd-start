@@ -10,6 +10,9 @@ case $DT_ID in
   *odroid_hc4*)
     SYSCONFFILE="$SYSCONFDIR/hc4.conf"
     ;;
+  *s7d_s905x5m*|*hk1*rbox*x50*)
+    SYSCONFFILE="$SYSCONFDIR/hk1-rbox-x50.conf"
+    ;;
 esac
 
 if [ "$(tr -d '\0' < $PROC_DT/openvfd/compatible)" = "open,vfd" ]; then
@@ -20,11 +23,9 @@ if [ "$(tr -d '\0' < $PROC_DT/openvfd/compatible)" = "open,vfd" ]; then
   else
     exit 0
   fi
+  # NextOS: rodar em modo RELOGIO (sem -s). A flag -s deixa o OpenVFDService
+  # preso em "modo string" mostrando a versao (ex: "CE20") e nunca mostra a hora.
   OS_SPLASH_OPT=""
-  if [ -f "$OSRELEASEFILE" ]; then
-    source "$OSRELEASEFILE"
-    OS_SPLASH_OPT="-s CE${VERSION_ID%%.*}"
-  fi
   /sbin/modprobe openvfd vfd_gpio_clk=${vfd_gpio_clk} \
                          vfd_gpio_dat=${vfd_gpio_dat} \
                          vfd_gpio_stb=${vfd_gpio_stb:-0,0,0xFF} \
