@@ -1,0 +1,198 @@
+--- a/vita3k/io/src/io.cpp
++++ b/vita3k/io/src/io.cpp
+@@ -283,7 +283,10 @@ fs::path expand_path(IOState &io, const char *path, const fs::path &pref_path) {
+     return device::construct_emulated_path(device, translated_path, pref_path, io.redirect_stdio).string();
+ }
+ 
+-SceUID open_file(IOState &io, const char *path, const int flags, const fs::path &pref_path, const char *export_name) {
++SceUID open_file(IOState &io, const char *path_in, const int flags, const fs::path &pref_path, const char *export_name) {
++    // NextOS: apply Fios2 overlays (e.g. archive.pk mounts) before resolving the device.
++    const std::string overlay_resolved = resolve_path(io, path_in);
++    const char *path = overlay_resolved.c_str();
+     auto device = device::get_device(path);
+     auto device_for_icase = device;
+     if (device == VitaIoDevice::_INVALID) {
+@@ -482,11 +485,15 @@ SceOff tell_file(IOState &io, const SceUID fd, const char *export_name) {
+     return std_file->second.tell();
+ }
+ 
+-int stat_file(IOState &io, const char *file, SceIoStat *statp, const fs::path &pref_path, const char *export_name, const SceUID fd) {
++int stat_file(IOState &io, const char *file_in, SceIoStat *statp, const fs::path &pref_path, const char *export_name, const SceUID fd) {
+     assert(statp != nullptr);
+ 
+     memset(statp, '\0', sizeof(SceIoStat));
+ 
++    // NextOS: apply Fios2 overlays (e.g. archive.pk mounts) before resolving the device.
++    const std::string overlay_resolved = resolve_path(io, file_in);
++    const char *file = overlay_resolved.c_str();
++
+     fs::path file_path = "";
+     if (fd == invalid_fd) {
+         auto device = device::get_device(file);
+@@ -884,6 +891,8 @@ SceUID create_overlay(IOState &io, SceFiosProcessOverlay *fios_overlay) {
+     while (overlay_index < io.overlays.size() && overlay.order < io.overlays[overlay_index].order)
+         overlay_index++;
+     auto res = overlay.id;
++    LOG_INFO("Fios overlay registered: dst='{}' -> src='{}' (type {} order {})",
++        overlay.dst, overlay.src, fmt::underlying(overlay.type), overlay.order);
+     io.overlays.insert(io.overlays.begin() + overlay_index, std::move(overlay));
+ 
+     return res;
+--- a/vita3k/modules/SceAppUtil/SceAppUtil.cpp
++++ b/vita3k/modules/SceAppUtil/SceAppUtil.cpp
+@@ -323,7 +323,8 @@ EXPORT(int, sceAppUtilSaveDataGetQuota, SceSize *quotaSizeKiB, SceSize *usedSize
+ 
+ EXPORT(int, sceAppUtilSaveDataMount) {
+     TRACY_FUNC(sceAppUtilSaveDataMount);
+-    return UNIMPLEMENTED();
++    // NextOS: savedata0: is always mapped by Vita3K's IO -> report mounted OK
++    return 0;
+ }
+ 
+ EXPORT(int, sceAppUtilSaveDataSlotCreate, unsigned int slotId, SceAppUtilSaveDataSlotParam *param, SceAppUtilMountPoint *mountPoint) {
+@@ -416,7 +417,7 @@ EXPORT(SceInt32, sceAppUtilSaveDataSlotSetParam, SceAppUtilSaveDataSlotId slotId
+ 
+ EXPORT(int, sceAppUtilSaveDataUmount) {
+     TRACY_FUNC(sceAppUtilSaveDataUmount);
+-    return UNIMPLEMENTED();
++    return 0;
+ }
+ 
+ static SceInt32 SafeMemory(EmuEnvState &emuenv, void *buf, SceSize bufSize, SceOff offset, const char *export_name, bool save) {
+--- a/vita3k/modules/SceCommonDialog/SceCommonDialog.cpp
++++ b/vita3k/modules/SceCommonDialog/SceCommonDialog.cpp
+@@ -580,22 +580,23 @@ EXPORT(int, sceNpMessageDialogAbort) {
+ 
+ EXPORT(int, sceNpMessageDialogGetResult) {
+     TRACY_FUNC(sceNpMessageDialogGetResult);
+-    return UNIMPLEMENTED();
++    return 0;
+ }
+ 
+ EXPORT(int, sceNpMessageDialogGetStatus) {
+     TRACY_FUNC(sceNpMessageDialogGetStatus);
+-    return UNIMPLEMENTED();
++    // NextOS: report dialog already finished so games don't wait on network UI
++    return SCE_COMMON_DIALOG_STATUS_FINISHED;
+ }
+ 
+ EXPORT(int, sceNpMessageDialogInit) {
+     TRACY_FUNC(sceNpMessageDialogInit);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_NONE;
+ }
+ 
+ EXPORT(int, sceNpMessageDialogTerm) {
+     TRACY_FUNC(sceNpMessageDialogTerm);
+-    return UNIMPLEMENTED();
++    return 0;
+ }
+ 
+ EXPORT(int, sceNpProfileDialogAbort) {
+@@ -605,17 +606,18 @@ EXPORT(int, sceNpProfileDialogAbort) {
+ 
+ EXPORT(int, sceNpProfileDialogGetResult) {
+     TRACY_FUNC(sceNpProfileDialogGetResult);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_NONE;
+ }
+ 
+ EXPORT(int, sceNpProfileDialogGetStatus) {
+     TRACY_FUNC(sceNpProfileDialogGetStatus);
+-    return UNIMPLEMENTED();
++    // NextOS: stubbed social dialog -> report FINISHED so the game proceeds
++    return SCE_COMMON_DIALOG_STATUS_FINISHED;
+ }
+ 
+ EXPORT(int, sceNpProfileDialogInit) {
+     TRACY_FUNC(sceNpProfileDialogInit);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_NONE;
+ }
+ 
+ EXPORT(int, sceNpProfileDialogTerm) {
+@@ -640,12 +642,12 @@ EXPORT(int, sceNpSnsFacebookDialogGetResultLongToken) {
+ 
+ EXPORT(int, sceNpSnsFacebookDialogGetStatus) {
+     TRACY_FUNC(sceNpSnsFacebookDialogGetStatus);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_FINISHED;
+ }
+ 
+ EXPORT(int, sceNpSnsFacebookDialogInit) {
+     TRACY_FUNC(sceNpSnsFacebookDialogInit);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_NONE;
+ }
+ 
+ EXPORT(int, sceNpSnsFacebookDialogTerm) {
+@@ -1446,12 +1448,12 @@ EXPORT(int, sceTwDialogGetResult) {
+ 
+ EXPORT(int, sceTwDialogGetStatus) {
+     TRACY_FUNC(sceTwDialogGetStatus);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_FINISHED;
+ }
+ 
+ EXPORT(int, sceTwDialogInit) {
+     TRACY_FUNC(sceTwDialogInit);
+-    return UNIMPLEMENTED();
++    return SCE_COMMON_DIALOG_STATUS_NONE;
+ }
+ 
+ EXPORT(int, sceTwDialogTerm) {
+--- a/vita3k/modules/SceDriverUser/SceFios2User.cpp
++++ b/vita3k/modules/SceDriverUser/SceFios2User.cpp
+@@ -101,25 +101,41 @@ EXPORT(int, sceFiosOverlayRemoveForProcess02) {
+     return UNIMPLEMENTED();
+ }
+ 
+-EXPORT(int, sceFiosOverlayResolveSync02) {
+-    TRACY_FUNC(sceFiosOverlayResolveSync02);
+-    return UNIMPLEMENTED();
++// NextOS: thread-local "overlay disabled" flag used by guest libfios2 to read raw
++// archive containers (e.g. archive.pk) without the overlay redirecting the path.
++static thread_local bool g_fios_overlay_thread_disabled = false;
++
++EXPORT(int, sceFiosOverlayResolveSync02, SceUID processId, SceFiosOverlayResolveMode resolveFlag, const char *pInPath, char *pOutPath, SceUInt32 maxPath) {
++    TRACY_FUNC(sceFiosOverlayResolveSync02, processId, resolveFlag, pInPath, pOutPath, maxPath);
++    if (!pInPath || !pOutPath || maxPath == 0)
++        return SCE_FIOS_OK;
++    const std::string resolved = g_fios_overlay_thread_disabled ? std::string(pInPath) : resolve_path(emuenv.io, pInPath);
++    strncpy(pOutPath, resolved.c_str(), maxPath);
++    pOutPath[maxPath - 1] = '\0'; // strncpy does NOT null-terminate when src >= maxPath
++    LOG_DEBUG("sceFiosOverlayResolveSync02 '{}' -> '{}'", pInPath, pOutPath);
++    return SCE_FIOS_OK;
+ }
+ 
+ EXPORT(int, sceFiosOverlayResolveWithRangeSync02, SceUID processId, SceFiosOverlayResolveMode resolveFlag, const char *pInPath, char *pOutPath, SceUInt32 maxPath, SceUInt32 min_order, SceUInt32 max_order) {
+     TRACY_FUNC(sceFiosOverlayResolveWithRangeSync02, processId, resolveFlag, pInPath, pOutPath, maxPath, min_order, max_order);
+-    const std::string resolved = resolve_path(emuenv.io, pInPath, min_order, max_order);
++    if (!pInPath || !pOutPath || maxPath == 0)
++        return SCE_FIOS_OK;
++    const std::string resolved = g_fios_overlay_thread_disabled ? std::string(pInPath) : resolve_path(emuenv.io, pInPath, min_order, max_order);
+     strncpy(pOutPath, resolved.c_str(), maxPath);
+-
++    pOutPath[maxPath - 1] = '\0'; // strncpy does NOT null-terminate when src >= maxPath
++    LOG_DEBUG("sceFiosOverlayResolveWithRangeSync02 '{}' -> '{}'", pInPath, pOutPath);
+     return SCE_FIOS_OK;
+ }
+ 
+-EXPORT(int, sceFiosOverlayThreadIsDisabled02) {
+-    TRACY_FUNC(sceFiosOverlayThreadIsDisabled02);
+-    return UNIMPLEMENTED();
++EXPORT(int, sceFiosOverlayThreadIsDisabled02, SceBool *pOutDisabled) {
++    TRACY_FUNC(sceFiosOverlayThreadIsDisabled02, pOutDisabled);
++    if (pOutDisabled)
++        *pOutDisabled = g_fios_overlay_thread_disabled ? 1 : 0;
++    return SCE_FIOS_OK;
+ }
+ 
+-EXPORT(int, sceFiosOverlayThreadSetDisabled02) {
+-    TRACY_FUNC(sceFiosOverlayThreadSetDisabled02);
+-    return UNIMPLEMENTED();
++EXPORT(int, sceFiosOverlayThreadSetDisabled02, SceBool disabled) {
++    TRACY_FUNC(sceFiosOverlayThreadSetDisabled02, disabled);
++    g_fios_overlay_thread_disabled = (disabled != 0);
++    return SCE_FIOS_OK;
+ }
