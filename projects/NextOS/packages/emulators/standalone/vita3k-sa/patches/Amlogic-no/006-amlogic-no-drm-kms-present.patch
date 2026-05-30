@@ -14,6 +14,17 @@
      ScreenRenderer(VKState &state);
  
      bool create(SDL_Window *window);
+--- a/vita3k/renderer/include/renderer/vulkan/state.h
++++ b/vita3k/renderer/include/renderer/vulkan/state.h
+@@ -96,6 +96,8 @@
+     vkutil::Buffer default_buffer;
+ 
+     bool support_fsr = false;
++    // NextOS Amlogic-no: false when the GPU lacks BC/DXT (Mali) -> decompress BC textures
++    bool support_dxt = true;
+     // support for the VK_KHR_uniform_buffer_standard_layout extension, needed for memory mapping and texture viewport
+     bool support_standard_layout = false;
+ 
 --- a/vita3k/renderer/src/vulkan/screen_renderer.cpp
 +++ b/vita3k/renderer/src/vulkan/screen_renderer.cpp
 @@ -18,33 +18,271 @@
@@ -444,7 +455,18 @@
  
          const std::set<std::string> optional_instance_extensions = {
              VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-@@ -344,10 +346,11 @@
+@@ -327,6 +329,10 @@
+ 
+         physical_device_properties = physical_device.getProperties();
+         physical_device_features = physical_device.getFeatures();
++        // NextOS Amlogic-no: the Mali blob does not support BC/DXT compressed textures.
++        support_dxt = static_cast<bool>(physical_device_features.textureCompressionBC);
++        if (!support_dxt)
++            LOG_INFO("GPU lacks BC/DXT texture compression; decompressing BC textures to RGBA8.");
+         physical_device_memory = physical_device.getMemoryProperties();
+         physical_device_queue_families = physical_device.getQueueFamilyProperties();
+ 
+@@ -344,10 +350,11 @@
              return false;
          }
  
@@ -459,6 +481,68 @@
          }
  
          // use these features (because they are used by the vita GPU) if they are available
+@@ -417,6 +424,10 @@
+         }
+         features.support_memory_mapping &= support_standard_layout;
+ 
++        // NextOS Amlogic-no: the Mali blob hangs (VK_ERROR_DEVICE_LOST) when shaders read GXM
++        // memory through buffer_device_address (page-table mapping). Force the safe copy path.
++        features.support_memory_mapping = false;
++
+ #ifdef __APPLE__
+         //  we need to make a copy of the vertex buffer for moltenvk, so disable memory mapping
+         features.support_memory_mapping = false;
+--- a/vita3k/renderer/src/vulkan/texture.cpp
++++ b/vita3k/renderer/src/vulkan/texture.cpp
+@@ -15,6 +15,7 @@
+ // with this program; if not, write to the Free Software Foundation, Inc.,
+ // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ 
++#include <util/log.h>
+ #include <renderer/vulkan/functions.h>
+ 
+ #include <renderer/vulkan/gxm_to_vulkan.h>
+@@ -312,6 +313,10 @@
+     const uint16_t mip_count = renderer::texture::get_upload_mip(gxm_texture.true_mip_count(), width, height);
+ 
+     vk::Format vk_format = texture::translate_format(base_format);
++    // NextOS Amlogic-no: GPU lacks BC/DXT -> create the image as RGBA8 (data is decompressed on upload)
++    if (!state.support_dxt && gxm::is_bcn_format(base_format)
++        && base_format != SCE_GXM_TEXTURE_BASE_FORMAT_UBC6H && base_format != SCE_GXM_TEXTURE_BASE_FORMAT_SBC6H)
++        vk_format = vk::Format::eR8G8B8A8Unorm;
+     if (gxm_texture.gamma_mode) {
+         vk_format = linear_to_srgb(vk_format);
+     }
+@@ -425,6 +430,18 @@
+         base_format = (base_format == SCE_GXM_TEXTURE_BASE_FORMAT_U8U8U8) ? SCE_GXM_TEXTURE_BASE_FORMAT_U8U8U8U8 : SCE_GXM_TEXTURE_BASE_FORMAT_S8S8S8S8;
+     }
+ 
++    // NextOS Amlogic-no: GPU lacks BC/DXT -> decompress BC blocks to RGBA8 before upload
++    if (gxm::is_bcn_format(base_format) && !state.support_dxt
++        && base_format != SCE_GXM_TEXTURE_BASE_FORMAT_UBC6H && base_format != SCE_GXM_TEXTURE_BASE_FORMAT_SBC6H) {
++        const uint32_t w4 = align(pixels_per_stride, 4);
++        const uint32_t h4 = align(height, 4);
++        temp_data.resize(static_cast<size_t>(w4) * h4 * 4);
++        renderer::texture::decompress_compressed_texture(base_format, temp_data.data(), text_data, pixels_per_stride, height);
++        text_data = temp_data.data();
++        pixels_per_stride = w4;
++        base_format = SCE_GXM_TEXTURE_BASE_FORMAT_U8U8U8U8;
++    }
++
+     vk::DeviceSize upload_size;
+     uint32_t buffer_height = height;
+     if (gxm::is_bcn_format(base_format)) {
+@@ -537,6 +554,10 @@
+         state.frame().destroy_queue.add_image(image);
+ 
+     vk::Format vk_format = texture::translate_format(base_format);
++    // NextOS Amlogic-no: GPU lacks BC/DXT -> create the image as RGBA8 (data is decompressed on upload)
++    if (!state.support_dxt && gxm::is_bcn_format(base_format)
++        && base_format != SCE_GXM_TEXTURE_BASE_FORMAT_UBC6H && base_format != SCE_GXM_TEXTURE_BASE_FORMAT_SBC6H)
++        vk_format = vk::Format::eR8G8B8A8Unorm;
+     if (is_srgb)
+         vk_format = linear_to_srgb(vk_format);
+ 
 --- a/vita3k/renderer/CMakeLists.txt
 +++ b/vita3k/renderer/CMakeLists.txt
 @@ -49,6 +49,17 @@
