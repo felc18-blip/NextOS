@@ -1,0 +1,27 @@
+From: NextOS <noreply@nextos>
+Subject: [PATCH] s7d: link IR keymap (custom_maps) + mbox channel on meson-remote
+
+The CoreELEC s7d common dts declares the meson-remote (IR) controller but
+never links the IR keymap (custom_maps, already provided by meson-ir-map.dtsi
+via meson-s7.dtsi) nor the mailbox channel the SCP firmware uses to deliver the
+decoded IR frames. Without them the meson-ir driver logs:
+  meson_ir_get_custom_tables:can't find match custom
+  can't request mbox
+and produces NO input events (the IR remote does nothing in the OS).
+
+Linking custom_maps + the IR mbox channel (7) makes the driver create the
+ir_keypad input and emit standard keycodes. Validated on HK1 RBOX X50 (S905X5M):
+the factory IR remote navigates and selects (OK = KEY_ENTER, already in the
+0x7788 profile of meson-ir-map.dtsi). meson-remote must still be modprobe'd
+(it does not autoprobe).
+--- a/common_drivers/arch/arm64/boot/dts/amlogic/coreelec_s7d_common.dtsi
++++ b/common_drivers/arch/arm64/boot/dts/amlogic/coreelec_s7d_common.dtsi
+@@ -106,6 +106,8 @@
+ 		reg = <0x0 0xfe084080 0x0 0xA4>, /*Multi-format IR controller*/
+ 		      <0x0 0xfe084000 0x0 0x58>; /*Legacy IR controller*/
+ 		interrupts = <GIC_SPI 148 IRQ_TYPE_EDGE_RISING>;
++		map = <&custom_maps>;
++		mboxes = <&mbox_fifo 7>;
+ 	};
+ };
+ 
