@@ -79,6 +79,21 @@ case ${DEVICE} in
   ;;
 esac
 
+# NextOS Amlogic-no (S905X5M, Mali Valhall G310, KMSDRM-direto sem compositor):
+# precisa de VIDEO_KMSDRM (criar janela sem X/Wayland) E SDL_VULKAN (Vita3K e
+# outros usam Vulkan; o blob expoe VK_KHR_display/surface/swapchain). Sem isso o
+# SDL2 so tinha 'wayland/offscreen' -> Vita3K "SDL failed to create window".
+# Forcado ao final p/ vencer os blocos OPENGL/wayland que setavam KMSDRM=OFF.
+# So este device (nao mexe em RK*/nxtos/outros que usam compositor).
+if [ "${DEVICE}" = "Amlogic-no" ]; then
+  PKG_DEPENDS_TARGET+=" vulkan-loader vulkan-headers"
+  PKG_CMAKE_OPTS_TARGET+=" -DVIDEO_KMSDRM=ON \
+                           -DSDL_KMSDRM=ON \
+                           -DSDL_KMSDRM_SHARED=ON \
+                           -DSDL_VULKAN=ON \
+                           -DVIDEO_VULKAN=ON"
+fi
+
 pre_configure_target(){
 
   if [ -n "${PKG_PATCH_DIRS_TARGET}" ]

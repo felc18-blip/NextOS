@@ -1,0 +1,500 @@
+--- a/vita3k/renderer/include/renderer/vulkan/screen_renderer.h
++++ b/vita3k/renderer/include/renderer/vulkan/screen_renderer.h
+@@ -72,6 +72,13 @@
+     // set to true after a window resize, in this case the pipeline needs to be rebuilt
+     bool need_rebuild = false;
+ 
++    // --- NextOS Amlogic-no: direct DRM/KMS present (blob Vulkan WSI is non-functional) ---
++    bool use_drm_present = false;
++    struct DrmPresenter *drm = nullptr;
++    bool init_drm_present();
++    void drm_create_images();
++    void drm_present(uint32_t image_idx);
++
+     ScreenRenderer(VKState &state);
+ 
+     bool create(SDL_Window *window);
+--- a/vita3k/renderer/src/vulkan/screen_renderer.cpp
++++ b/vita3k/renderer/src/vulkan/screen_renderer.cpp
+@@ -18,33 +18,271 @@
+ #include "renderer/vulkan/screen_renderer.h"
+ 
+ #include <SDL_vulkan.h>
++#include <SDL_syswm.h>
+ 
+ #include "renderer/vulkan/state.h"
+ #include "util/log.h"
+ #include "vkutil/vkutil.h"
+ 
++// NextOS Amlogic-no: direct DRM/KMS present (Mali blob Vulkan WSI is a non-functional stub)
++#include <fcntl.h>
++#include <poll.h>
++#include <unistd.h>
++#include <xf86drm.h>
++#include <xf86drmMode.h>
++#include <gbm.h>
++#include <drm/drm_fourcc.h>
++#include <dirent.h>
++#include <cstring>
++
+ namespace renderer::vulkan {
+ 
++struct DrmPresenter {
++    int fd = -1;
++    gbm_device *gbm = nullptr;
++    uint32_t crtc = 0;
++    uint32_t conn = 0;
++    drmModeModeInfo mode{};
++    bool first_flip = true;
++    struct Buf {
++        gbm_bo *bo = nullptr;
++        uint32_t fb = 0;
++        vk::DeviceMemory mem;
++    };
++    std::vector<Buf> bufs;
++};
++
++bool ScreenRenderer::init_drm_present() {
++    drm = new DrmPresenter();
++    // SDL's kmsdrm backend (and/or the Mali ICD) opens its own card0 fd inside THIS process and
++    // holds DRM master on it. The kernel allows only one master per device, so our fd gets EBUSY.
++    // Find every card0 fd in this process and drop master on it, freeing it for us.
++    if (DIR *d = opendir("/proc/self/fd")) {
++        struct dirent *e;
++        while ((e = readdir(d)) != nullptr) {
++            int fd = atoi(e->d_name);
++            if (fd <= 2) continue;
++            char path[64], target[256];
++            snprintf(path, sizeof(path), "/proc/self/fd/%s", e->d_name);
++            ssize_t n = readlink(path, target, sizeof(target) - 1);
++            if (n > 0) {
++                target[n] = 0;
++                if (strstr(target, "/dev/dri/card")) {
++                    int r = drmDropMaster(fd);
++                    if (r == 0)
++                        LOG_INFO("DRM present: dropped DRM master held on fd={} ({})", fd, target);
++                }
++            }
++        }
++        closedir(d);
++    }
++    drm->fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
++    if (drm->fd < 0) {
++        LOG_ERROR("DRM present: could not open /dev/dri/card0");
++        return false;
++    }
++    int sm = drmSetMaster(drm->fd);
++    for (int i = 0; sm != 0 && i < 50; i++) { usleep(20000); sm = drmSetMaster(drm->fd); }
++    if (sm != 0)
++        LOG_WARN("DRM present: could not acquire DRM master (errno {})", errno);
++    drm->gbm = gbm_create_device(drm->fd);
++    if (!drm->gbm) {
++        LOG_ERROR("DRM present: gbm_create_device failed");
++        return false;
++    }
++    drmModeRes *res = drmModeGetResources(drm->fd);
++    if (!res) {
++        LOG_ERROR("DRM present: drmModeGetResources failed");
++        return false;
++    }
++    drmModeConnector *conn = nullptr;
++    for (int i = 0; i < res->count_connectors; i++) {
++        drmModeConnector *c = drmModeGetConnector(drm->fd, res->connectors[i]);
++        if (c && c->connection == DRM_MODE_CONNECTED && c->count_modes > 0) {
++            conn = c;
++            break;
++        }
++        if (c)
++            drmModeFreeConnector(c);
++    }
++    if (!conn) {
++        LOG_ERROR("DRM present: no connected connector");
++        drmModeFreeResources(res);
++        return false;
++    }
++    drm->conn = conn->connector_id;
++    drm->mode = conn->modes[0];
++    for (int i = 0; i < conn->count_modes; i++) {
++        if (conn->modes[i].type & DRM_MODE_TYPE_PREFERRED) {
++            drm->mode = conn->modes[i];
++            break;
++        }
++    }
++    drmModeEncoder *enc = drmModeGetEncoder(drm->fd, conn->encoder_id);
++    if (enc) {
++        drm->crtc = enc->crtc_id;
++        drmModeFreeEncoder(enc);
++    }
++    if (!drm->crtc && res->count_crtcs > 0)
++        drm->crtc = res->crtcs[0];
++    drmModeFreeConnector(conn);
++    drmModeFreeResources(res);
++    extent = vk::Extent2D{ drm->mode.hdisplay, drm->mode.vdisplay };
++    LOG_INFO("DRM present: conn {} crtc {} {}x{}@{}", drm->conn, drm->crtc,
++        drm->mode.hdisplay, drm->mode.vdisplay, drm->mode.vrefresh);
++    return true;
++}
++
++void ScreenRenderer::drm_create_images() {
++    const uint32_t W = drm->mode.hdisplay;
++    const uint32_t H = drm->mode.vdisplay;
++    swapchain_size = 3;
++    swapchain_images.resize(swapchain_size);
++    drm->bufs.resize(swapchain_size);
++    uint64_t linear = DRM_FORMAT_MOD_LINEAR;
++    vk::PhysicalDeviceMemoryProperties mem_props = state.physical_device.getMemoryProperties();
++    for (uint32_t i = 0; i < swapchain_size; i++) {
++        DrmPresenter::Buf &b = drm->bufs[i];
++        b.bo = gbm_bo_create_with_modifiers(drm->gbm, W, H, GBM_FORMAT_XRGB8888, &linear, 1);
++        if (!b.bo) {
++            LOG_ERROR("DRM present: gbm_bo_create_with_modifiers failed for buffer {}", i);
++            return;
++        }
++        int dmafd = gbm_bo_get_fd(b.bo);
++        uint32_t stride = gbm_bo_get_stride(b.bo);
++        uint32_t handle = gbm_bo_get_handle(b.bo).u32;
++        uint32_t handles[4] = { handle, 0, 0, 0 };
++        uint32_t strides[4] = { stride, 0, 0, 0 };
++        uint32_t offsets[4] = { 0, 0, 0, 0 };
++        if (drmModeAddFB2(drm->fd, W, H, DRM_FORMAT_XRGB8888, handles, strides, offsets, &b.fb, 0))
++            LOG_ERROR("DRM present: drmModeAddFB2 failed for buffer {}", i);
++
++        vk::SubresourceLayout plane_layout{};
++        plane_layout.offset = 0;
++        plane_layout.rowPitch = stride;
++        vk::ImageDrmFormatModifierExplicitCreateInfoEXT mod_info{
++            .drmFormatModifier = 0,
++            .drmFormatModifierPlaneCount = 1,
++            .pPlaneLayouts = &plane_layout,
++        };
++        vk::ExternalMemoryImageCreateInfo ext_info{
++            .pNext = &mod_info,
++            .handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
++        };
++        vk::ImageCreateInfo image_info{
++            .pNext = &ext_info,
++            .imageType = vk::ImageType::e2D,
++            .format = surface_format.format,
++            .extent = vk::Extent3D{ W, H, 1 },
++            .mipLevels = 1,
++            .arrayLayers = 1,
++            .samples = vk::SampleCountFlagBits::e1,
++            .tiling = vk::ImageTiling::eDrmFormatModifierEXT,
++            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
++            .sharingMode = vk::SharingMode::eExclusive,
++            .initialLayout = vk::ImageLayout::eUndefined,
++        };
++        vk::Image image = state.device.createImage(image_info);
++        vk::MemoryRequirements mr = state.device.getImageMemoryRequirements(image);
++        uint32_t mem_type = 0;
++        for (uint32_t k = 0; k < mem_props.memoryTypeCount; k++) {
++            if (mr.memoryTypeBits & (1u << k)) {
++                mem_type = k;
++                break;
++            }
++        }
++        vk::ImportMemoryFdInfoKHR import_info{
++            .handleType = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
++            .fd = dmafd,
++        };
++        vk::MemoryDedicatedAllocateInfo ded_info{
++            .pNext = &import_info,
++            .image = image,
++        };
++        vk::MemoryAllocateInfo alloc_info{
++            .pNext = &ded_info,
++            .allocationSize = mr.size,
++            .memoryTypeIndex = mem_type,
++        };
++        b.mem = state.device.allocateMemory(alloc_info);
++        state.device.bindImageMemory(image, b.mem, 0);
++        swapchain_images[i] = image;
++    }
++    LOG_INFO("DRM present: {} scanout buffers imported into Vulkan", swapchain_size);
++}
++
++static void drm_flip_handler(int /*fd*/, unsigned /*frame*/, unsigned /*sec*/, unsigned /*usec*/, void *data) {
++    *static_cast<int *>(data) = 0;
++}
++
++void ScreenRenderer::drm_present(uint32_t image_idx) {
++    DrmPresenter::Buf &b = drm->bufs[image_idx];
++    if (drm->first_flip) {
++        drmModeSetCrtc(drm->fd, drm->crtc, b.fb, 0, 0, &drm->conn, 1, &drm->mode);
++        drm->first_flip = false;
++        return;
++    }
++    int pending = 1;
++    if (drmModePageFlip(drm->fd, drm->crtc, b.fb, DRM_MODE_PAGE_FLIP_EVENT, &pending) != 0) {
++        drmModeSetCrtc(drm->fd, drm->crtc, b.fb, 0, 0, &drm->conn, 1, &drm->mode);
++        return;
++    }
++    drmEventContext ev{};
++    ev.version = 2;
++    ev.page_flip_handler = drm_flip_handler;
++    struct pollfd pfd{};
++    pfd.fd = drm->fd;
++    pfd.events = POLLIN;
++    while (pending) {
++        if (poll(&pfd, 1, 100) > 0)
++            drmHandleEvent(drm->fd, &ev);
++        else
++            break;
++    }
++}
++
+ ScreenRenderer::ScreenRenderer(VKState &state)
+     : state(state) {
+ }
+ 
+ bool ScreenRenderer::create(SDL_Window *window) {
+-    VkSurfaceKHR surface = VK_NULL_HANDLE;
+-    bool surface_error = SDL_Vulkan_CreateSurface(window, state.instance, &surface);
+-    if (!surface_error) {
+-        const char *error = SDL_GetError();
+-        LOG_ERROR("Failed to create vulkan surface. SDL Error: {}.", error);
+-        return false;
+-    }
+     this->window = window;
+-    this->surface = vk::SurfaceKHR(surface);
+-
++    // NextOS Amlogic-no: do NOT create the SDL/VK_KHR_display Vulkan surface. The Mali blob
++    // grabs DRM master when a display surface is created, which blocks our direct KMS present
++    // (drmModeSetCrtc -> EACCES). We present via direct DRM/KMS, so no Vulkan WSI surface needed.
++    this->surface = vk::SurfaceKHR(VK_NULL_HANDLE);
++    use_drm_present = true;
+     return true;
+ }
+ 
+ bool ScreenRenderer::setup() {
+-    const auto surface_formats = state.physical_device.getSurfaceFormatsKHR(surface);
++    // NextOS Amlogic-no: the Mali blob's Vulkan WSI is a non-functional stub. The query may
++    // either return an empty list OR throw ErrorExtensionNotPresent. Both -> direct DRM/KMS.
++    std::vector<vk::SurfaceFormatKHR> surface_formats;
++    if (!use_drm_present && surface) {
++        try {
++            surface_formats = state.physical_device.getSurfaceFormatsKHR(surface);
++        } catch (const vk::SystemError &) {
++            surface_formats.clear();
++        }
++    }
++    // NextOS Amlogic-no: present via direct DRM/KMS (Vulkan WSI is a non-functional stub).
++    if (use_drm_present || surface_formats.empty()) {
++        use_drm_present = true;
++        surface_format.format = vk::Format::eB8G8R8A8Unorm;
++        surface_format.colorSpace = vk::ColorSpaceKHR::eSrgbNonlinear;
++        present_mode = vk::PresentModeKHR::eFifo;
++        LOG_INFO("Vulkan WSI reports no surface formats; using direct DRM/KMS present (Amlogic-no).");
++        if (!init_drm_present())
++            return false;
++        create_render_pass();
++        create_swapchain();
++        create_layout_sync();
++        create_surface_image();
++        filter = std::make_unique<FXAAScreenFilter>(*this);
++        filter->init();
++        return true;
++    }
+     bool surface_format_found = false;
+     for (const auto &format : surface_formats) {
+         // actually we don't care that much because we will just be copying what the game rendered
+@@ -97,6 +335,37 @@
+ }
+ 
+ void ScreenRenderer::create_swapchain() {
++    if (use_drm_present) {
++        extent = vk::Extent2D{ drm->mode.hdisplay, drm->mode.vdisplay };
++        if (extent.width == 0 || extent.height == 0)
++            return;
++        drm_create_images();
++        swapchain_views.resize(swapchain_size);
++        for (uint32_t i = 0; i < swapchain_size; i++) {
++            vk::ImageViewCreateInfo view_info{
++                .image = swapchain_images[i],
++                .viewType = vk::ImageViewType::e2D,
++                .format = surface_format.format,
++                .components = vkutil::default_comp_mapping,
++                .subresourceRange = vkutil::color_subresource_range
++            };
++            swapchain_views[i] = state.device.createImageView(view_info);
++        }
++        swapchain_framebuffers.resize(swapchain_size);
++        for (uint32_t i = 0; i < swapchain_size; i++) {
++            vk::FramebufferCreateInfo fb_info{
++                .renderPass = default_render_pass,
++                .width = extent.width,
++                .height = extent.height,
++                .layers = 1
++            };
++            fb_info.setAttachments(swapchain_views[i]);
++            swapchain_framebuffers[i] = state.device.createFramebuffer(fb_info);
++        }
++        if (filter)
++            filter->on_resize();
++        return;
++    }
+     // refresh the capabilities
+     surface_capabilities = state.physical_device.getSurfaceCapabilitiesKHR(surface);
+ 
+@@ -215,6 +484,38 @@
+ static constexpr uint64_t next_image_timeout = std::numeric_limits<uint64_t>::max();
+ 
+ bool ScreenRenderer::acquire_swapchain_image(bool start_render_pass) {
++    if (use_drm_present) {
++        current_frame++;
++        if (current_frame >= static_cast<int>(swapchain_size))
++            current_frame = 0;
++        swapchain_image_idx = current_frame;
++        auto wr = state.device.waitForFences(fences[swapchain_image_idx], VK_TRUE, next_image_timeout);
++        if (wr != vk::Result::eSuccess) {
++            LOG_ERROR("Could not wait for fences (drm present).");
++            return false;
++        }
++        state.device.resetFences(fences[swapchain_image_idx]);
++        current_cmd_buffer = command_buffers[swapchain_image_idx];
++        current_cmd_buffer.reset();
++        vk::CommandBufferBeginInfo begin_info{
++            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
++        };
++        current_cmd_buffer.begin(begin_info);
++        if (start_render_pass) {
++            vk::RenderPassBeginInfo pass_info{
++                .renderPass = default_render_pass,
++                .framebuffer = swapchain_framebuffers[swapchain_image_idx],
++                .renderArea = { .offset = { 0, 0 }, .extent = extent }
++            };
++            vk::ClearValue clear_color{
++                .color = { std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f } }
++            };
++            pass_info.setClearValues(clear_color);
++            current_cmd_buffer.beginRenderPass(pass_info, vk::SubpassContents::eInline);
++        }
++        return true;
++    }
++
+     vk::Result acquire_result = vk::Result::eErrorOutOfDateKHR;
+ 
+     current_frame++;
+@@ -315,6 +616,20 @@
+         return;
+     }
+ 
++    if (use_drm_present) {
++        current_cmd_buffer.endRenderPass();
++        current_cmd_buffer.end();
++        vk::SubmitInfo submit_info{};
++        submit_info.setCommandBuffers(current_cmd_buffer);
++        state.general_queue.submit(submit_info, fences[swapchain_image_idx]);
++        // ensure the GPU finished rendering before the display scans the buffer out
++        (void)state.device.waitForFences(fences[swapchain_image_idx], VK_TRUE, next_image_timeout);
++        drm_present(swapchain_image_idx);
++        swapchain_image_idx = ~0;
++        current_cmd_buffer = nullptr;
++        return;
++    }
++
+     // first submit the command buffer
+     current_cmd_buffer.endRenderPass();
+     current_cmd_buffer.end();
+--- a/vita3k/renderer/src/vulkan/renderer.cpp
++++ b/vita3k/renderer/src/vulkan/renderer.cpp
+@@ -74,7 +74,12 @@
+     // needed in order to use storage buffers
+     VK_KHR_STORAGE_BUFFER_STORAGE_CLASS_EXTENSION_NAME,
+     // needed in order to use negative viewport height
+-    VK_KHR_MAINTENANCE1_EXTENSION_NAME
++    VK_KHR_MAINTENANCE1_EXTENSION_NAME,
++    // NextOS Amlogic-no: import GBM scanout buffers into Vulkan for direct DRM/KMS present
++    VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME,
++    VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
++    VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
++    VK_KHR_BIND_MEMORY_2_EXTENSION_NAME
+ };
+ 
+ namespace renderer::vulkan {
+@@ -113,8 +118,9 @@
+ 
+         // Only one DeviceQueueCreateInfo should be created per family.
+         if (!found_graphics && (queue_family.queueFlags & vk::QueueFlagBits::eGraphics)
+-            && (queue_family.queueFlags & vk::QueueFlagBits::eTransfer)
+-            && vk_state.physical_device.getSurfaceSupportKHR(i, vk_state.screen_renderer.surface)) {
++            && (queue_family.queueFlags & vk::QueueFlagBits::eTransfer)) {
++            // NextOS Amlogic-no: do NOT require present support here — the Mali blob's display
++            // surface never reports it (we present via direct DRM/KMS instead).
+             vk::DeviceQueueCreateInfo queue_create_info{
+                 .queueFamilyIndex = i,
+                 .queueCount = queue_family.queueCount,
+@@ -195,15 +201,11 @@
+             .apiVersion = VK_API_VERSION_1_0
+         };
+ 
+-        unsigned int instance_req_ext_count;
+-        if (!SDL_Vulkan_GetInstanceExtensions(window, &instance_req_ext_count, nullptr)) {
+-            LOG_ERROR("Could not get required extensions");
+-            return false;
+-        }
+-
++        // NextOS Amlogic-no: do NOT enable the SDL WSI surface/display instance extensions.
++        // Enabling VK_KHR_display makes the Mali blob grab DRM master (drmSetMaster -> EBUSY),
++        // which blocks our direct KMS present. We render into GBM-imported buffers and present
++        // via KMS, so no Vulkan WSI surface/display is needed.
+         std::vector<const char *> instance_extensions;
+-        instance_extensions.resize(instance_req_ext_count);
+-        SDL_Vulkan_GetInstanceExtensions(window, &instance_req_ext_count, instance_extensions.data());
+ 
+         const std::set<std::string> optional_instance_extensions = {
+             VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+@@ -344,10 +346,11 @@
+             return false;
+         }
+ 
+-        if (!physical_device.getSurfaceSupportKHR(
++        if (screen_renderer.surface && !physical_device.getSurfaceSupportKHR(
+                 general_family_index, screen_renderer.surface)) {
+-            LOG_ERROR("Failed to select a Vulkan queue that supports presentation. This is likely a bug.");
+-            return false;
++            // NextOS Amlogic-no: blob reports no present support on its (non-functional) display
++            // surface; we present via direct DRM/KMS instead, so this is not fatal.
++            LOG_WARN("Driver reports no presentation queue; using direct DRM/KMS present path.");
+         }
+ 
+         // use these features (because they are used by the vita GPU) if they are available
+--- a/vita3k/renderer/CMakeLists.txt
++++ b/vita3k/renderer/CMakeLists.txt
+@@ -49,6 +49,17 @@
+ target_link_libraries(renderer PUBLIC display mem stb shader glutil threads config util vkutil)
+ target_link_libraries(renderer PRIVATE ddspp sdl2 stb ffmpeg xxHash::xxhash concurrentqueue)
+ 
++# NextOS Amlogic-no: direct DRM/KMS present (Mali blob Vulkan WSI is non-functional)
++find_package(PkgConfig REQUIRED)
++pkg_check_modules(LIBDRM REQUIRED libdrm)
++# only add the libdrm SUBDIR (not the broad sysroot include, which would shadow the
++# bundled fmt v11 with the sysroot's fmt v9 and break the link)
++foreach(_d ${LIBDRM_INCLUDE_DIRS})
++  if(_d MATCHES "/libdrm$")
++    target_include_directories(renderer PRIVATE ${_d})
++  endif()
++endforeach()
++
+ # Marshmallow Tracy linking
+ if(TRACY_ENABLE_ON_CORE_COMPONENTS)
+ 	target_link_libraries(renderer PRIVATE tracy)
+--- a/vita3k/CMakeLists.txt
++++ b/vita3k/CMakeLists.txt
+@@ -138,14 +138,12 @@
+ endif()
+ 
+ target_link_libraries(vita3k PRIVATE app config cppcommon ctrl display gdbstub gui gxm io miniz modules packages patch renderer shader touch util)
++# NextOS Amlogic-no: DRM/KMS present libs (shared, appended last to avoid static reorder)
++target_link_libraries(vita3k PRIVATE drm gbm)
+ if(USE_DISCORD_RICH_PRESENCE)
+ 	target_link_libraries(vita3k PRIVATE discord-rpc)
+ endif()
+ 
+-if(LINUX)
+-	target_link_libraries(vita3k PRIVATE -static-libgcc -static-libstdc++)
+-endif()
+-
+ set_target_properties(vita3k PROPERTIES OUTPUT_NAME Vita3K
+ 	ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+ 	LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
