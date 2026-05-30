@@ -7,12 +7,17 @@ PKG_VERSION=""
 PKG_LICENSE="various"
 PKG_SITE="https://libreelec.tv"
 PKG_URL=""
-PKG_DEPENDS_TARGET="toolchain connman iwd netbase ethtool openssh iw wireless-regdb rsync tailscale avahi miniupnpc nss-mdns speedtest-cli"
+PKG_DEPENDS_TARGET="toolchain connman iwd netbase ethtool openssh iw wireless-regdb rsync tailscale avahi miniupnpc nss-mdns speedtest-cli dbussy"
 PKG_SECTION="virtual"
 PKG_LONGDESC="Metapackage for various packages to install network support"
 
+# dbussy provides the python 'ravel' module required by /usr/bin/iwd_get-networks,
+# which the EmulationStation network menu uses to list WiFi networks via iwd's
+# D-Bus API. It is a WiFi dependency (not bluetooth) and must always be present;
+# previously it was only pulled in under BLUETOOTH_SUPPORT, so on builds without
+# bluetooth the ES WiFi list came up empty. Kept in the base deps above.
 if [ "${BLUETOOTH_SUPPORT}" = "yes" ]; then
-  PKG_DEPENDS_TARGET="${PKG_DEPENDS_TARGET} bluez dbussy"
+  PKG_DEPENDS_TARGET="${PKG_DEPENDS_TARGET} bluez"
 fi
 
 if [ "${SAMBA_SERVER}" = "yes" ] || [ "$SAMBA_SUPPORT" = "yes" ]; then

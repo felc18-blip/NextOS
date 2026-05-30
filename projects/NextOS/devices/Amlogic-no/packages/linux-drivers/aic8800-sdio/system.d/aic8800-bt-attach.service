@@ -1,0 +1,19 @@
+[Unit]
+Description=Attach AIC8800D80 Bluetooth (UART H4 on ttyS1, flow nosleep)
+After=aic8800-wifi-power.service aic8800-sdio.service bluetooth.service
+Wants=aic8800-wifi-power.service
+ConditionPathExists=/dev/ttyS1
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Wait until the WiFi driver is up (it loads the combo BT firmware on the chip).
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do ip link show wlan0 >/dev/null 2>&1 && break; sleep 0.3; done'
+# Kill any stale hciattach from the stock aic8800-sdio.service (which uses bare
+# `any`, no flow/nosleep, and does not bring the controller up).
+ExecStartPre=-/usr/bin/pkill -f hciattach.*ttyS1
+# Load the BT GPIO/rfkill driver, power BT on, attach H4 with flow control + nosleep.
+ExecStart=/bin/sh -c 'modprobe aic8800_btlpm 2>/dev/null; /usr/sbin/rfkill unblock bluetooth; sleep 1; /usr/bin/hciattach -s 1500000 /dev/ttyS1 any 1500000 flow nosleep; sleep 2; /usr/bin/hciconfig hci0 up 2>/dev/null; exit 0'
+
+[Install]
+WantedBy=multi-user.target
