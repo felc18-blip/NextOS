@@ -6,6 +6,16 @@
 . /etc/profile
 set_kill set "-9 AppRun.wrapped"
 
+# NextOS Amlogic-no (S905X5M, Mali Valhall G310, KMSDRM sem compositor):
+# a AppImage Qt do DuckStation precisa do plugin de plataforma eglfs + integracao
+# KMS/GBM, senao tenta xcb/wayland e ABORTA com SIGABRT (qt.qpa: no platform
+# plugin). Qt6 6.11 do sistema fornece libQt6EglFSDeviceIntegration/eglfs_kms.
+export QT_QPA_PLATFORM=eglfs
+export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+export QT_QPA_EGLFS_KMS_ATOMIC=0
+export QT_PLUGIN_PATH=/usr/plugins
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
 # Filesystem vars
 IMMUTABLE_CONF_DIR="/usr/config/duckstation"
 IMMUTABLE_CONF_FILE="${IMMUTABLE_CONF_DIR}/settings.ini"

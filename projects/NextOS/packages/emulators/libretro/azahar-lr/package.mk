@@ -12,8 +12,8 @@ PKG_TOOLCHAIN="cmake"
 
 if [ "${OPENGLES_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" ${OPENGLES}"
-  PKG_PATCH_DIRS+=" gles"
   AZAHAR_ENABLE_OPENGL="ON"
+  AZAHAR_USE_GLES="yes"
 elif [ "${OPENGL_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
   AZAHAR_ENABLE_OPENGL="ON"
@@ -52,6 +52,22 @@ pre_configure_target() {
   # nao sao inicializados recursivamente pelo get handler -> CMake reclama
   # "Could NOT find mcl/..." + erro no soundtouch. Inicializa todos.
   ( cd ${PKG_BUILD} && git submodule update --init --recursive 2>/dev/null ) || true
+
+  # GLES FIX (Amlogic-no Mali G310 / qualquer device GLES sem GL desktop):
+  # src/citra_libretro/CMakeLists.txt SO define a macro USING_GLES dentro do bloco
+  # `if(ANDROID)` (nao ha else). Em build Linux ARM (NAO Android) USING_GLES fica
+  # indefinida -> citra_libretro.cpp:559 `#if defined(USING_GLES)` cai no #else ->
+  # pede RETRO_HW_CONTEXT_OPENGL_CORE (GL 4.3 desktop) e o RetroArch GLES recusa
+  # ("compiled against OpenGLES. Cannot use HW context"). Fix: injetar USING_GLES
+  # em ESCOPO GLOBAL (fora de qualquer if), logo apos a ancora global
+  # `target_compile_definitions(azahar_libretro PRIVATE HAVE_LIBRETRO)`.
+  # (NAO mirar nas linhas USING_GLES HAVE_LIBRETRO_VFS: estao dentro do if ANDROID
+  # que nunca executa aqui.) Confirmado: core pede RETRO_HW_CONTEXT_OPENGLES3 e
+  # EMULA (NSMB2 na TV, GL_RENDERER Mali-G310, OpenGL ES 3.2, CPU sustentada).
+  if [ "${AZAHAR_USE_GLES}" = "yes" ]; then
+    sed -i '/^target_compile_definitions(azahar_libretro PRIVATE HAVE_LIBRETRO)$/a target_compile_definitions(azahar_libretro PRIVATE USING_GLES)\ntarget_compile_definitions(azahar_libretro_common PRIVATE USING_GLES)' \
+      ${PKG_BUILD}/src/citra_libretro/CMakeLists.txt
+  fi
 }
 
 makeinstall_target() {

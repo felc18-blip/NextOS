@@ -208,9 +208,16 @@ makeinstall_target() {
       add_es_system 3ds
       ;;
     Amlogic-no)
-      # X5M Valhall G310 GLES 3.2: panda3ds libretro (HLE 3DS) compila
-      # e roda. Sem azahar-sa (precisa Vulkan + qt6 nao disponivel).
-      add_emu_core 3ds retroarch panda3ds true
+      # X5M Valhall G310 GLES 3.2: azahar libretro (fork citra/azahar) EMULA 3DS
+      # via OpenGL ES 3.2 no blob Mali — CONFIRMADO 2026-05-30: NSMB2 rodando
+      # (App loaded successfully, GL_RENDERER Mali-G310, CPU sustentada ~260-410
+      # jiffies/5s). Requer: (1) sysdata 3DS em /storage/roms/3ds/Azahar/sysdata/
+      # (aes_keys.txt completo c/ common key + boot9.bin + seeddb.bin + shared_font.bin);
+      # (2) ROM decriptada COM flag NoCrypto (0x04) no header NCCH flags[7] — dumps
+      # "Decrypted" tem o data decriptado mas o header ainda marca encrypted; azahar
+      # recusa. Fix: setar bit 0x04 em flags[7] de cada NCCH (ver doc 20).
+      # panda3ds (HLE) NAO compilou (so .info na imagem) — fica fora por ora.
+      add_emu_core 3ds retroarch azahar true
       add_es_system 3ds
       ;;
   esac
