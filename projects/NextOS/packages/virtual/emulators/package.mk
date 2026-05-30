@@ -113,7 +113,7 @@ case "${DEVICE}" in
     PKG_DEPENDS_TARGET+=" common-shaders glsl-shaders"
     PKG_EMUS+=" box64 dolphin-sa drastic-sa duckstation-sa mednafen nanoboyadvance-sa portmaster scummvmsa yabasanshiro-sa \
                 biginstinct-sa bigpemu-sa hypseus kronos-sa touchhle-sa vita3k-sa minivmacsa \
-                aethersx2-sa cemu-sa duckstation-nogui pcsx2-sa rpcs3-sa xemu-sa"
+                aethersx2-sa cemu-sa duckstation-nogui pcsx2-sa rpcs3-sa xemu-sa ppsspp-sa-vulkan"
     LIBRETRO_CORES+=" flycast2021-lr geolith-lr uae4arm \
                       beetle-psx-lr beetle-saturn-lr boom3-lr bsnes-hd-lr bsnes-lr \
                       dolphin-lr ecwolf-lr kronos-lr mame2003-lr \
@@ -1228,6 +1228,11 @@ makeinstall_target() {
   ### Sony Playstation Portable
   add_emu_core psp ppsspp ppsspp-sa true
   add_emu_core psp retroarch ppsspp false
+  # NextOS Amlogic-no: PPSSPP backend Vulkan (bridge DRM/KMS + GBM-import no blob Mali Valhall).
+  # CORE=ppssppvulkan -> runemu roda /usr/bin/start_ppssppvulkan.sh -> /usr/bin/ppsspp-vulkan.
+  if [ "${DEVICE}" = "Amlogic-no" ]; then
+    add_emu_core psp ppssppvulkan ppssppvulkan false
+  fi
   add_es_system psp
   install_script "Start PPSSPP.sh"
 
