@@ -1,0 +1,732 @@
+--- a/Source/Core/VideoBackends/Vulkan/CMakeLists.txt
++++ b/Source/Core/VideoBackends/Vulkan/CMakeLists.txt
+@@ -12,6 +12,8 @@ add_library(videovulkan
+   StateTracker.h
+   VKBoundingBox.cpp
+   VKBoundingBox.h
++  VKDrmPresent.cpp
++  VKDrmPresent.h
+   VKMain.cpp
+   VKPerfQuery.cpp
+   VKPerfQuery.h
+@@ -55,6 +57,14 @@ if (ANDROID AND _M_ARM_64)
+   )
+ endif()
+ 
++# NextOS Amlogic-no: direct DRM/KMS + GBM-import present bridge (Mali blob WSI is a stub).
++target_compile_definitions(videovulkan PRIVATE NEXTOS_DRM_PRESENT)
++target_link_libraries(videovulkan PRIVATE gbm drm)
++target_include_directories(videovulkan PRIVATE
++  ${CMAKE_FIND_ROOT_PATH}/usr/include/libdrm
++  ${CMAKE_FIND_ROOT_PATH}/usr/include
++)
++
+ # Only include the Vulkan headers when building the Vulkan backend
+ target_include_directories(videovulkan
+ PRIVATE
+--- a/Source/Core/VideoBackends/Vulkan/CommandBufferManager.cpp
++++ b/Source/Core/VideoBackends/Vulkan/CommandBufferManager.cpp
+@@ -2,6 +2,7 @@
+ // SPDX-License-Identifier: GPL-2.0-or-later
+ 
+ #include "VideoBackends/Vulkan/CommandBufferManager.h"
++#include "VideoBackends/Vulkan/VKDrmPresent.h"
+ 
+ #include <array>
+ #include <cstdint>
+@@ -429,6 +430,14 @@ void CommandBufferManager::SubmitCommandBuffer(u32 command_buffer_index,
+   // Do we have a swap chain to present?
+   if (present_swap_chain != VK_NULL_HANDLE)
+   {
++#ifdef NEXTOS_DRM_PRESENT
++    // NextOS Amlogic-no: present via the DRM/KMS + GBM-import bridge instead of vkQueuePresentKHR.
++    // The bridge copies the rendered image into the LINEAR scanout dma_buf and KMS-flips it.
++    VKDrmPresent::GetInstance()->Present(present_image_index);
++    m_last_present_result = VK_SUCCESS;
++    m_last_present_done.Set();
++    return;
++#endif
+     // Should have a signal semaphore.
+     VkPresentInfoKHR present_info = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                      nullptr,
+--- /dev/null
++++ b/Source/Core/VideoBackends/Vulkan/VKDrmPresent.cpp
+@@ -0,0 +1,455 @@
++// NextOS Amlogic-no: direct DRM/KMS present for Vulkan (Mali blob WSI is a stub). See header.
++#include "VideoBackends/Vulkan/VKDrmPresent.h"
++
++#include "Common/Logging/Log.h"
++
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++
++#include <fcntl.h>
++#include <poll.h>
++#include <unistd.h>
++#include <dirent.h>
++
++#include <xf86drm.h>
++#include <xf86drmMode.h>
++#include <gbm.h>
++#include <drm/drm_fourcc.h>
++
++namespace Vulkan
++{
++struct DrmPresentImpl
++{
++  int fd = -1;
++  gbm_device* gbm = nullptr;
++  uint32_t crtc = 0;
++  uint32_t conn = 0;
++  drmModeModeInfo mode{};
++  bool first_flip = true;
++  struct Buf
++  {
++    gbm_bo* bo = nullptr;
++    uint32_t fb = 0;
++  };
++  std::vector<Buf> bufs;
++};
++
++static VKDrmPresent* s_instance = nullptr;
++
++static void drm_flip_handler(int, unsigned, unsigned, unsigned, void* data)
++{
++  *static_cast<int*>(data) = 0;
++}
++
++VKDrmPresent* VKDrmPresent::GetInstance()
++{
++  return s_instance;
++}
++
++bool VKDrmPresent::Create(VkPhysicalDevice physical_device, VkDevice device, uint32_t graphics_queue_family,
++                          VkQueue graphics_queue, VkFormat format, int image_count)
++{
++  s_instance = new VKDrmPresent();
++  if (!s_instance->Init(physical_device, device, graphics_queue_family, graphics_queue, format, image_count))
++  {
++    s_instance->Shutdown();
++    delete s_instance;
++    s_instance = nullptr;
++    return false;
++  }
++  return true;
++}
++
++void VKDrmPresent::Destroy()
++{
++  if (s_instance)
++  {
++    s_instance->Shutdown();
++    delete s_instance;
++    s_instance = nullptr;
++  }
++}
++
++uint32_t VKDrmPresent::FindMemoryType(uint32_t type_bits, VkMemoryPropertyFlags props) const
++{
++  VkPhysicalDeviceMemoryProperties mp{};
++  vkGetPhysicalDeviceMemoryProperties(m_physical_device, &mp);
++  for (uint32_t i = 0; i < mp.memoryTypeCount; i++)
++  {
++    if ((type_bits & (1u << i)) && (mp.memoryTypes[i].propertyFlags & props) == props)
++      return i;
++  }
++  for (uint32_t i = 0; i < mp.memoryTypeCount; i++)
++    if (type_bits & (1u << i))
++      return i;
++  return 0;
++}
++
++bool VKDrmPresent::Init(VkPhysicalDevice physical_device, VkDevice device, uint32_t graphics_queue_family,
++                        VkQueue graphics_queue, VkFormat format, int image_count)
++{
++  m_impl = new DrmPresentImpl();
++  m_physical_device = physical_device;
++  m_device = device;
++  m_graphics_queue = graphics_queue;
++  m_graphics_queue_family = graphics_queue_family;
++  m_format = format;
++
++  // Drop DRM master held by any other card fd (SDL/Mali ICD) so we can become master.
++  if (DIR* d = opendir("/proc/self/fd"))
++  {
++    struct dirent* e;
++    while ((e = readdir(d)) != nullptr)
++    {
++      int fd = atoi(e->d_name);
++      if (fd <= 2)
++        continue;
++      char path[300], target[256];
++      snprintf(path, sizeof(path), "/proc/self/fd/%s", e->d_name);
++      ssize_t n = readlink(path, target, sizeof(target) - 1);
++      if (n > 0)
++      {
++        target[n] = 0;
++        if (strstr(target, "/dev/dri/card"))
++          drmDropMaster(fd);
++      }
++    }
++    closedir(d);
++  }
++
++  m_impl->fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
++  if (m_impl->fd < 0)
++  {
++    ERROR_LOG_FMT(VIDEO, "DRM present: open card0 failed");
++    return false;
++  }
++  int sm = drmSetMaster(m_impl->fd);
++  for (int i = 0; sm != 0 && i < 50; i++)
++  {
++    usleep(20000);
++    sm = drmSetMaster(m_impl->fd);
++  }
++
++  m_impl->gbm = gbm_create_device(m_impl->fd);
++  if (!m_impl->gbm)
++  {
++    ERROR_LOG_FMT(VIDEO, "DRM present: gbm_create_device failed");
++    return false;
++  }
++
++  drmModeRes* res = drmModeGetResources(m_impl->fd);
++  if (!res)
++  {
++    ERROR_LOG_FMT(VIDEO, "DRM present: drmModeGetResources failed");
++    return false;
++  }
++  drmModeConnector* conn = nullptr;
++  for (int i = 0; i < res->count_connectors; i++)
++  {
++    drmModeConnector* c = drmModeGetConnector(m_impl->fd, res->connectors[i]);
++    if (c && c->connection == DRM_MODE_CONNECTED && c->count_modes > 0)
++    {
++      conn = c;
++      break;
++    }
++    if (c)
++      drmModeFreeConnector(c);
++  }
++  if (!conn)
++  {
++    ERROR_LOG_FMT(VIDEO, "DRM present: no connected connector");
++    drmModeFreeResources(res);
++    return false;
++  }
++  m_impl->conn = conn->connector_id;
++  m_impl->mode = conn->modes[0];
++  for (int i = 0; i < conn->count_modes; i++)
++    if (conn->modes[i].type & DRM_MODE_TYPE_PREFERRED)
++    {
++      m_impl->mode = conn->modes[i];
++      break;
++    }
++  drmModeEncoder* enc = drmModeGetEncoder(m_impl->fd, conn->encoder_id);
++  if (enc)
++  {
++    m_impl->crtc = enc->crtc_id;
++    drmModeFreeEncoder(enc);
++  }
++  if (!m_impl->crtc && res->count_crtcs > 0)
++    m_impl->crtc = res->crtcs[0];
++  drmModeFreeConnector(conn);
++  drmModeFreeResources(res);
++
++  m_width = m_impl->mode.hdisplay;
++  m_height = m_impl->mode.vdisplay;
++  INFO_LOG_FMT(VIDEO, "DRM present: conn {} crtc {} {}x{}@{}", m_impl->conn, m_impl->crtc, m_width,
++               m_height, m_impl->mode.vrefresh);
++
++  int count = image_count < 2 ? 2 : image_count;
++  m_render_images.resize(count);
++  m_render_mem.resize(count);
++  m_scanout_images.resize(count);
++  m_scanout_mem.resize(count);
++  m_impl->bufs.resize(count);
++  uint64_t linear = DRM_FORMAT_MOD_LINEAR;
++
++  for (int i = 0; i < count; i++)
++  {
++    // ---- render image: normal optimal-tiled, DEVICE_LOCAL. Dolphin renders here. ----
++    VkImageCreateInfo rci{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
++    rci.imageType = VK_IMAGE_TYPE_2D;
++    rci.format = format;
++    rci.extent = {m_width, m_height, 1};
++    rci.mipLevels = 1;
++    rci.arrayLayers = 1;
++    rci.samples = VK_SAMPLE_COUNT_1_BIT;
++    rci.tiling = VK_IMAGE_TILING_OPTIMAL;
++    rci.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
++                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
++    rci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
++    rci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
++    if (vkCreateImage(device, &rci, nullptr, &m_render_images[i]) != VK_SUCCESS)
++    {
++      ERROR_LOG_FMT(VIDEO, "DRM present: render image {} failed", i);
++      return false;
++    }
++    VkMemoryRequirements rmr{};
++    vkGetImageMemoryRequirements(device, m_render_images[i], &rmr);
++    VkMemoryAllocateInfo rai{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
++    rai.allocationSize = rmr.size;
++    rai.memoryTypeIndex = FindMemoryType(rmr.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
++    if (vkAllocateMemory(device, &rai, nullptr, &m_render_mem[i]) != VK_SUCCESS)
++    {
++      ERROR_LOG_FMT(VIDEO, "DRM present: render mem {} failed", i);
++      return false;
++    }
++    vkBindImageMemory(device, m_render_images[i], m_render_mem[i], 0);
++
++    // ---- scanout image: GBM LINEAR dma_buf imported into Vulkan, TRANSFER_DST only. ----
++    DrmPresentImpl::Buf& b = m_impl->bufs[i];
++    b.bo = gbm_bo_create_with_modifiers(m_impl->gbm, m_width, m_height, GBM_FORMAT_XRGB8888, &linear, 1);
++    if (!b.bo)
++    {
++      ERROR_LOG_FMT(VIDEO, "DRM present: gbm_bo_create {} failed", i);
++      return false;
++    }
++    int dmafd = gbm_bo_get_fd(b.bo);
++    uint32_t stride = gbm_bo_get_stride(b.bo);
++    uint32_t handle = gbm_bo_get_handle(b.bo).u32;
++    uint32_t handles[4] = {handle, 0, 0, 0}, strides[4] = {stride, 0, 0, 0}, offsets[4] = {0, 0, 0, 0};
++    if (drmModeAddFB2(m_impl->fd, m_width, m_height, DRM_FORMAT_XRGB8888, handles, strides, offsets, &b.fb, 0))
++      ERROR_LOG_FMT(VIDEO, "DRM present: drmModeAddFB2 {} failed", i);
++
++    VkSubresourceLayout plane_layout{};
++    plane_layout.rowPitch = stride;
++    VkImageDrmFormatModifierExplicitCreateInfoEXT mod_info{
++        VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT};
++    mod_info.drmFormatModifier = DRM_FORMAT_MOD_LINEAR;
++    mod_info.drmFormatModifierPlaneCount = 1;
++    mod_info.pPlaneLayouts = &plane_layout;
++    VkExternalMemoryImageCreateInfo ext_info{VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO};
++    ext_info.pNext = &mod_info;
++    ext_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
++    VkImageCreateInfo sci{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
++    sci.pNext = &ext_info;
++    sci.imageType = VK_IMAGE_TYPE_2D;
++    sci.format = format;
++    sci.extent = {m_width, m_height, 1};
++    sci.mipLevels = 1;
++    sci.arrayLayers = 1;
++    sci.samples = VK_SAMPLE_COUNT_1_BIT;
++    sci.tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
++    sci.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
++    sci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
++    sci.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
++    if (vkCreateImage(device, &sci, nullptr, &m_scanout_images[i]) != VK_SUCCESS)
++    {
++      ERROR_LOG_FMT(VIDEO, "DRM present: scanout image {} failed", i);
++      return false;
++    }
++    VkMemoryRequirements smr{};
++    vkGetImageMemoryRequirements(device, m_scanout_images[i], &smr);
++    VkImportMemoryFdInfoKHR imp{VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR};
++    imp.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
++    imp.fd = dmafd;
++    VkMemoryDedicatedAllocateInfo ded{VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO};
++    ded.pNext = &imp;
++    ded.image = m_scanout_images[i];
++    VkMemoryAllocateInfo sai{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
++    sai.pNext = &ded;
++    sai.allocationSize = smr.size;
++    sai.memoryTypeIndex = FindMemoryType(smr.memoryTypeBits, 0);
++    if (vkAllocateMemory(device, &sai, nullptr, &m_scanout_mem[i]) != VK_SUCCESS)
++    {
++      ERROR_LOG_FMT(VIDEO, "DRM present: scanout import {} failed", i);
++      return false;
++    }
++    vkBindImageMemory(device, m_scanout_images[i], m_scanout_mem[i], 0);
++  }
++
++  // Command pool + per-index pre-recorded copy command buffers (render[i] -> scanout[i]).
++  VkCommandPoolCreateInfo pci{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
++  pci.queueFamilyIndex = m_graphics_queue_family;
++  pci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
++  vkCreateCommandPool(device, &pci, nullptr, &m_cmd_pool);
++  m_copy_cmds.resize(count);
++  VkCommandBufferAllocateInfo cbai{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
++  cbai.commandPool = m_cmd_pool;
++  cbai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
++  cbai.commandBufferCount = count;
++  vkAllocateCommandBuffers(device, &cbai, m_copy_cmds.data());
++
++  for (int i = 0; i < count; i++)
++  {
++    VkCommandBufferBeginInfo bi{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
++    vkBeginCommandBuffer(m_copy_cmds[i], &bi);
++
++    VkImageMemoryBarrier to_copy[2]{};
++    to_copy[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
++    to_copy[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
++    to_copy[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
++    to_copy[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
++    to_copy[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
++    to_copy[0].image = m_render_images[i];
++    to_copy[0].subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
++    to_copy[0].srcQueueFamilyIndex = to_copy[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
++    to_copy[1] = to_copy[0];
++    to_copy[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
++    to_copy[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
++    to_copy[1].srcAccessMask = 0;
++    to_copy[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
++    to_copy[1].image = m_scanout_images[i];
++    vkCmdPipelineBarrier(m_copy_cmds[i], VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
++                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 2, to_copy);
++
++    VkImageCopy region{};
++    region.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
++    region.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
++    region.extent = {m_width, m_height, 1};
++    vkCmdCopyImage(m_copy_cmds[i], m_render_images[i], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
++                   m_scanout_images[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
++
++    VkImageMemoryBarrier after[2]{};
++    after[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
++    after[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
++    after[0].newLayout = VK_IMAGE_LAYOUT_GENERAL;
++    after[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
++    after[0].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
++    after[0].image = m_scanout_images[i];
++    after[0].subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
++    after[0].srcQueueFamilyIndex = after[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
++    after[1] = after[0];
++    after[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
++    after[1].newLayout = VK_IMAGE_LAYOUT_GENERAL;
++    after[1].srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
++    after[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
++    after[1].image = m_render_images[i];
++    vkCmdPipelineBarrier(m_copy_cmds[i], VK_PIPELINE_STAGE_TRANSFER_BIT,
++                         VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 2, after);
++
++    vkEndCommandBuffer(m_copy_cmds[i]);
++  }
++
++  VkFenceCreateInfo fi{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
++  vkCreateFence(device, &fi, nullptr, &m_copy_fence);
++
++  INFO_LOG_FMT(VIDEO, "NextOS DRM present: {} render+linear scanout buffers ready (copy bridge)", count);
++  m_valid = true;
++  return true;
++}
++
++uint32_t VKDrmPresent::AcquireNextImage()
++{
++  uint32_t idx = m_next_index % GetImageCount();
++  m_next_index++;
++  return idx;
++}
++
++void VKDrmPresent::Present(uint32_t index)
++{
++  // Copy the freshly rendered (optimal) image into the LINEAR scanout dma_buf. A transfer write
++  // actually lands in the dma_buf memory (a direct render into it does not, on this blob).
++  VkSubmitInfo si{VK_STRUCTURE_TYPE_SUBMIT_INFO};
++  si.commandBufferCount = 1;
++  si.pCommandBuffers = &m_copy_cmds[index];
++  vkResetFences(m_device, 1, &m_copy_fence);
++  if (vkQueueSubmit(m_graphics_queue, 1, &si, m_copy_fence) != VK_SUCCESS)
++  {
++    ERROR_LOG_FMT(VIDEO, "NextOS DRM present: copy submit failed");
++    return;
++  }
++  vkWaitForFences(m_device, 1, &m_copy_fence, VK_TRUE, UINT64_MAX);
++
++  DrmPresentImpl::Buf& b = m_impl->bufs[index];
++  if (m_impl->first_flip)
++  {
++    drmModeSetCrtc(m_impl->fd, m_impl->crtc, b.fb, 0, 0, &m_impl->conn, 1, &m_impl->mode);
++    m_impl->first_flip = false;
++    return;
++  }
++  int pending = 1;
++  if (drmModePageFlip(m_impl->fd, m_impl->crtc, b.fb, DRM_MODE_PAGE_FLIP_EVENT, &pending) != 0)
++  {
++    drmModeSetCrtc(m_impl->fd, m_impl->crtc, b.fb, 0, 0, &m_impl->conn, 1, &m_impl->mode);
++    return;
++  }
++  drmEventContext ev{};
++  ev.version = 2;
++  ev.page_flip_handler = drm_flip_handler;
++  struct pollfd pfd{};
++  pfd.fd = m_impl->fd;
++  pfd.events = POLLIN;
++  while (pending)
++  {
++    if (poll(&pfd, 1, 100) > 0)
++      drmHandleEvent(m_impl->fd, &ev);
++    else
++      break;
++  }
++}
++
++void VKDrmPresent::Shutdown()
++{
++  if (m_copy_fence)
++    vkDestroyFence(m_device, m_copy_fence, nullptr);
++  if (m_cmd_pool)
++    vkDestroyCommandPool(m_device, m_cmd_pool, nullptr);
++  for (auto img : m_render_images)
++    if (img)
++      vkDestroyImage(m_device, img, nullptr);
++  for (auto m : m_render_mem)
++    if (m)
++      vkFreeMemory(m_device, m, nullptr);
++  for (auto img : m_scanout_images)
++    if (img)
++      vkDestroyImage(m_device, img, nullptr);
++  for (auto m : m_scanout_mem)
++    if (m)
++      vkFreeMemory(m_device, m, nullptr);
++  m_render_images.clear();
++  m_render_mem.clear();
++  m_scanout_images.clear();
++  m_scanout_mem.clear();
++  if (m_impl)
++  {
++    for (auto& b : m_impl->bufs)
++    {
++      if (b.fb)
++        drmModeRmFB(m_impl->fd, b.fb);
++      if (b.bo)
++        gbm_bo_destroy(b.bo);
++    }
++    if (m_impl->gbm)
++      gbm_device_destroy(m_impl->gbm);
++    if (m_impl->fd >= 0)
++    {
++      drmDropMaster(m_impl->fd);
++      close(m_impl->fd);
++    }
++    delete m_impl;
++    m_impl = nullptr;
++  }
++  m_valid = false;
++}
++}  // namespace Vulkan
+--- /dev/null
++++ b/Source/Core/VideoBackends/Vulkan/VKDrmPresent.h
+@@ -0,0 +1,67 @@
++// NextOS Amlogic-no (Mali Valhall G310 r44p0): direct DRM/KMS present for Vulkan.
++// The Mali blob's Vulkan WSI (VK_KHR_display swapchain) is a non-functional stub. We bypass
++// the swapchain: Dolphin renders into NORMAL optimal images (Mali free to use AFBC); each
++// present we vkCmdCopyImage them into GBM-allocated LINEAR dma_buf scanout buffers (a transfer
++// writes raw linear bytes that actually land in the dma_buf - a direct render does NOT on this
++// blob) and scan them out with a KMS pageflip. Same bridge proven on PPSSPP/Vita3K.
++#pragma once
++
++#include "VideoBackends/Vulkan/VulkanLoader.h"
++
++#include <cstdint>
++#include <vector>
++
++namespace Vulkan
++{
++struct DrmPresentImpl;
++
++class VKDrmPresent
++{
++public:
++  static VKDrmPresent* GetInstance();
++  static bool Create(VkPhysicalDevice physical_device, VkDevice device, uint32_t graphics_queue_family,
++                     VkQueue graphics_queue, VkFormat format, int image_count);
++  static void Destroy();
++
++  bool Valid() const { return m_valid; }
++  uint32_t GetWidth() const { return m_width; }
++  uint32_t GetHeight() const { return m_height; }
++  VkFormat GetFormat() const { return m_format; }
++  uint32_t GetImageCount() const { return static_cast<uint32_t>(m_render_images.size()); }
++  // The image Dolphin renders into (normal optimal-tiled image, wrapped in a VKTexture).
++  VkImage GetRenderImage(uint32_t i) const { return m_render_images[i]; }
++
++  // Round-robin to the next buffer (no GPU work - empty/semaphore-only submits crash the blob).
++  uint32_t AcquireNextImage();
++
++  // Copy render image -> LINEAR scanout dma_buf, wait, KMS-flip it onto the CRTC.
++  void Present(uint32_t index);
++
++private:
++  bool Init(VkPhysicalDevice physical_device, VkDevice device, uint32_t graphics_queue_family,
++            VkQueue graphics_queue, VkFormat format, int image_count);
++  void Shutdown();
++  uint32_t FindMemoryType(uint32_t type_bits, VkMemoryPropertyFlags props) const;
++
++  DrmPresentImpl* m_impl = nullptr;
++  VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;
++  VkDevice m_device = VK_NULL_HANDLE;
++  VkQueue m_graphics_queue = VK_NULL_HANDLE;
++  uint32_t m_graphics_queue_family = 0;
++  VkFormat m_format = VK_FORMAT_B8G8R8A8_UNORM;
++
++  std::vector<VkImage> m_render_images;     // optimal, Dolphin renders here
++  std::vector<VkDeviceMemory> m_render_mem;
++  std::vector<VkImage> m_scanout_images;    // LINEAR, imported from GBM, scanned out
++  std::vector<VkDeviceMemory> m_scanout_mem;
++
++  VkCommandPool m_cmd_pool = VK_NULL_HANDLE;
++  std::vector<VkCommandBuffer> m_copy_cmds; // pre-recorded copy render[i] -> scanout[i]
++  VkFence m_copy_fence = VK_NULL_HANDLE;
++
++  uint32_t m_width = 0;
++  uint32_t m_height = 0;
++  uint32_t m_next_index = 0;
++  bool m_valid = false;
++};
++}  // namespace Vulkan
+--- a/Source/Core/VideoBackends/Vulkan/VKGfx.cpp
++++ b/Source/Core/VideoBackends/Vulkan/VKGfx.cpp
+@@ -305,8 +305,15 @@ void VKGfx::PresentBackbuffer()
+ 
+   // Transition the backbuffer to PRESENT_SRC to ensure all commands drawing
+   // to it have finished before present.
++#ifdef NEXTOS_DRM_PRESENT
++  // NextOS Amlogic-no: our backbuffer is a normal (non-swapchain) image; PRESENT_SRC_KHR crashes
++  // the Mali blob. GENERAL is valid and the bridge copies it to the LINEAR scanout buffer.
++  m_swap_chain->GetCurrentTexture()->TransitionToLayout(
++      g_command_buffer_mgr->GetCurrentCommandBuffer(), VK_IMAGE_LAYOUT_GENERAL);
++#else
+   m_swap_chain->GetCurrentTexture()->TransitionToLayout(
+       g_command_buffer_mgr->GetCurrentCommandBuffer(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
++#endif
+ 
+   // Submit the current command buffer, signaling rendering finished semaphore when it's done
+   // Because this final command buffer is rendering to the swap chain, we need to wait for
+--- a/Source/Core/VideoBackends/Vulkan/VKSwapChain.cpp
++++ b/Source/Core/VideoBackends/Vulkan/VKSwapChain.cpp
+@@ -2,6 +2,7 @@
+ // SPDX-License-Identifier: GPL-2.0-or-later
+ 
+ #include "VideoBackends/Vulkan/VKSwapChain.h"
++#include "VideoBackends/Vulkan/VKDrmPresent.h"
+ 
+ #include <algorithm>
+ #include <cstdint>
+@@ -42,6 +43,12 @@
+ #if defined(VK_USE_PLATFORM_DISPLAY_KHR)
+   if (wsi.type == WindowSystemType::DRM)
+   {
++#ifdef NEXTOS_DRM_PRESENT
++    // NextOS Amlogic-no: do NOT create a Vulkan display surface. The Mali blob's WSI is a stub and
++    // vkCreateDisplayPlaneSurfaceKHR grabs DRM master, blocking our direct KMS present. We present
++    // via the DRM/KMS + GBM-import bridge (no Vulkan surface needed). Queue selection handles NULL.
++    return VK_NULL_HANDLE;
++#endif
+     // Get the first display
+     uint32_t display_count = 1;
+     VkDisplayPropertiesKHR display_props;
+@@ -443,6 +450,31 @@
+ 
+ bool SwapChain::CreateSwapChain()
+ {
++#ifdef NEXTOS_DRM_PRESENT
++  // NextOS Amlogic-no: the Mali blob's WSI swapchain is a non-functional stub. Bypass it with the
++  // direct DRM/KMS + GBM-import bridge (render to optimal images, copy to LINEAR dma_buf, KMS flip).
++  m_surface_format.format = VK_FORMAT_B8G8R8A8_UNORM;
++  m_surface_format.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
++  m_texture_format = AbstractTextureFormat::BGRA8;
++  if (!VKDrmPresent::GetInstance())
++  {
++    if (!VKDrmPresent::Create(g_vulkan_context->GetPhysicalDevice(), g_vulkan_context->GetDevice(),
++                              g_vulkan_context->GetGraphicsQueueFamilyIndex(),
++                              g_vulkan_context->GetGraphicsQueue(), m_surface_format.format, 3))
++    {
++      ERROR_LOG_FMT(VIDEO, "NextOS DRM present bridge init failed!");
++      return false;
++    }
++  }
++  m_width = VKDrmPresent::GetInstance()->GetWidth();
++  m_height = VKDrmPresent::GetInstance()->GetHeight();
++  m_layers = 1;
++  // Sentinel so GetSwapChain() is non-NULL and CommandBufferManager runs its present path (where
++  // we branch to the bridge). Never passed to vkDestroySwapchainKHR (guarded in DestroySwapChain).
++  m_swap_chain = reinterpret_cast<VkSwapchainKHR>(1);
++  return true;
++#endif
++
+   // Look up surface properties to determine image count and dimensions
+   VkSurfaceCapabilitiesKHR surface_capabilities;
+   VkResult res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_vulkan_context->GetPhysicalDevice(),
+@@ -593,6 +625,14 @@
+   ASSERT(m_swap_chain_images.empty());
+ 
+   uint32_t image_count;
++  std::vector<VkImage> images;
++#ifdef NEXTOS_DRM_PRESENT
++  // NextOS Amlogic-no: the "swapchain images" are the bridge's normal render images.
++  image_count = VKDrmPresent::GetInstance()->GetImageCount();
++  images.resize(image_count);
++  for (uint32_t i = 0; i < image_count; i++)
++    images[i] = VKDrmPresent::GetInstance()->GetRenderImage(i);
++#else
+   VkResult res =
+       vkGetSwapchainImagesKHR(g_vulkan_context->GetDevice(), m_swap_chain, &image_count, nullptr);
+   if (res != VK_SUCCESS)
+@@ -601,10 +641,11 @@
+     return false;
+   }
+ 
+-  std::vector<VkImage> images(image_count);
++  images.resize(image_count);
+   res = vkGetSwapchainImagesKHR(g_vulkan_context->GetDevice(), m_swap_chain, &image_count,
+                                 images.data());
+   ASSERT(res == VK_SUCCESS);
++#endif
+ 
+   const TextureConfig texture_config(
+       TextureConfig(m_width, m_height, 1, m_layers, 1, m_texture_format,
+@@ -662,6 +703,11 @@
+   if (m_swap_chain == VK_NULL_HANDLE)
+     return;
+ 
++#ifdef NEXTOS_DRM_PRESENT
++  // Sentinel (reinterpret_cast<VkSwapchainKHR>(1)) - not a real swapchain, nothing to destroy.
++  m_swap_chain = VK_NULL_HANDLE;
++  return;
++#endif
+   // Release exclusive fullscreen before destroying.
+   if (m_current_fullscreen_state)
+     SetFullscreenState(false);
+@@ -672,6 +718,12 @@
+ 
+ VkResult SwapChain::AcquireNextImage()
+ {
++#ifdef NEXTOS_DRM_PRESENT
++  // NextOS Amlogic-no: round-robin to the next bridge render image (no real acquire). The command
++  // buffer semaphore is left unsignaled; the bridge serializes with vkQueueWaitIdle on present.
++  m_current_swap_chain_image_index = VKDrmPresent::GetInstance()->AcquireNextImage();
++  return VK_SUCCESS;
++#else
+   VkResult res = vkAcquireNextImageKHR(g_vulkan_context->GetDevice(), m_swap_chain, UINT64_MAX,
+                                        g_command_buffer_mgr->GetCurrentCommandBufferSemaphore(),
+                                        VK_NULL_HANDLE, &m_current_swap_chain_image_index);
+@@ -679,6 +731,7 @@
+     LOG_VULKAN_ERROR(res, "vkAcquireNextImageKHR failed: ");
+ 
+   return res;
++#endif
+ }
+ 
+ bool SwapChain::ResizeSwapChain()
+--- a/Source/Core/VideoBackends/Vulkan/VulkanContext.cpp
++++ b/Source/Core/VideoBackends/Vulkan/VulkanContext.cpp
+@@ -609,6 +609,16 @@
+ 
+   AddExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, false);
+   AddExtension(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, false);
++#ifdef NEXTOS_DRM_PRESENT
++  // NextOS Amlogic-no: import GBM scanout dma_buf buffers as VkImages for the KMS present bridge.
++  AddExtension(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME, false);
++  AddExtension(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME, false);
++  AddExtension(VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME, false);
++  AddExtension(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME, false);
++  AddExtension(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME, false);
++  AddExtension(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME, false);
++  AddExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME, false);
++#endif
+ 
+   return true;
+ }

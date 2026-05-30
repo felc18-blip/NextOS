@@ -6,14 +6,17 @@
 # usando a combinação do EmuELEC GBM_VULKAN (dolphin 3c4d4fcd + patch 003).
 # Binário instalado como dolphin-emu-nogui-vulkan p/ coexistir com o dolphin-sa GL.
 #
-# ⚠️ STATUS 2026-05-29: BLOQUEADO no blob atual. Compila e inicializa o device
-# Vulkan, mas o blob `libMali.valhall.g310 r44p0` (CoreELEC/opengl-meson, mesmo
-# que o EmuELEC usa) NAO expoe `VK_KHR_display_swapchain` -> vkCreateSwapchainKHR
-# na display surface falha com VK_ERROR_EXTENSION_NOT_PRESENT. Patches 004/005
-# contornam present-queue + queries de surface, mas o swapchain em si e' limite
-# do driver. Pronto pra um blob futuro (r51p0+) que inclua display_swapchain.
-# NAO esta wired no ES (dormiente). Solucao em producao = dolphin-sa (GL/EGL).
-# Ver receita: nextos s905x5/14-DOLPHIN-DRM-EGL-VULKAN-KMS-RECEITA.md
+# STATUS 2026-05-30: DESTRAVADO via PONTE DRM/KMS + GBM-import (patch 006), a MESMA
+# receita que fez o ppsspp-sa-vulkan rodar Metal Slug XX no blob Mali Valhall. Em vez
+# de usar o WSI display_swapchain (stub no blob), bypassamos o swapchain: Dolphin
+# renderiza em imagens NORMAIS optimal -> vkCmdCopyImage -> buffer LINEAR GBM importado
+# -> KMS pageflip. 3 chaves: queue sem present (patch 004 ja fazia), backbuffer
+# finalLayout GENERAL (nao PRESENT_SRC_KHR, que crasha o Mali em img nao-swapchain), e
+# render->copy->linear (render direto nao aterrissa no dma_buf). Patches 003/004/005
+# (WSI) ficam inertes (o bridge nao cria surface). Helper novo VKDrmPresent.{h,cpp}.
+# ⚠️ COMPILA (todos os .o); falta verificar LINK no build do pacote + TESTAR no device
+# (iteracoes de debug esperadas, como o ppsspp levou). NAO wired no ES ate testar.
+# Ver receita: nextos s905x5/28-PPSSPP-VULKAN-MALI-BRIDGE-BREAKTHROUGH.md (+ doc 14).
 
 PKG_NAME="dolphin-sa-vulkan"
 PKG_VERSION="3c4d4fcd09173ea070dc812ab5d64ca3a3af5f29"
@@ -21,7 +24,7 @@ PKG_ARCH="aarch64"
 PKG_LICENSE="GPLv2"
 PKG_SITE="https://github.com/dolphin-emu/dolphin"
 PKG_URL="${PKG_SITE}.git"
-PKG_DEPENDS_TARGET="toolchain libevdev libdrm ffmpeg zlib libpng lzo libusb zstd ecm openal-soft pulseaudio alsa-lib libfmt hidapi curl vulkan-loader vulkan-headers"
+PKG_DEPENDS_TARGET="toolchain libevdev libdrm mesa ffmpeg zlib libpng lzo libusb zstd ecm openal-soft pulseaudio alsa-lib libfmt hidapi curl vulkan-loader vulkan-headers"
 PKG_LONGDESC="Dolphin (GC/Wii) — build Vulkan KMS/DRM (PR #13222 / EmuELEC GBM_VULKAN) para Amlogic-no"
 PKG_TOOLCHAIN="cmake"
 PKG_PATCH_DIRS="Amlogic-no"
